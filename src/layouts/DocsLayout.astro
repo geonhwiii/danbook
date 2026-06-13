@@ -1,0 +1,27 @@
+---
+import Layout from "./Layout.astro";
+import DocsHeader from "../components/DocsHeader.astro";
+import DocsSidebar from "../components/DocsSidebar.astro";
+
+interface Props {
+  title?: string;
+  description?: string;
+  // 강의 사이드바를 표시할 강의 slug. 없으면 사이드바 없는 풀폭 레이아웃(강의 목록 등).
+  courseSlug?: string;
+}
+
+const { title, description, courseSlug } = Astro.props;
+const hasSidebar = Boolean(courseSlug);
+---
+
+<Layout title={title} description={description}>
+  <DocsHeader withSidebarToggle={hasSidebar} />
+  <div class="mx-auto flex w-full max-w-[1400px]">
+    {hasSidebar && <DocsSidebar courseSlug={courseSlug!} />}
+    <main class="min-w-0 flex-1">
+      <div class="mx-auto max-w-[760px] px-6 py-12 md:px-10 md:py-16">
+        <slot />
+      </div>
+    </main>
+  </div>
+</Layout>

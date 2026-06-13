@@ -1,0 +1,142 @@
+---
+import { getCourseGroups, lessonSlugOf } from "@lib/docs";
+import { courseBySlug } from "@shared/constants";
+import CourseProgress from "./react/CourseProgress.tsx";
+
+interface Props {
+  // 현재 강의 slug (예: "networking-for-web-developers")
+  courseSlug: string;
+}
+
+const { courseSlug } = Astro.props;
+const course = courseBySlug(courseSlug);
+const groups = await getCourseGroups(courseSlug);
+
+// 진행률 계산을 위한 이 강의의 모든 레슨 id (정렬 순서대로).
+const lessonIds = groups.flatMap((g) => g.items.map((doc) => doc.id));
+
+const pathname = Astro.url.pathname;
+const isActive = (id: string) => pathname === `/docs/${id}` || pathname === `/docs/${id}/`;
+---
+
+<!-- Mobile scrim -->
+<div
+  id="sidebar-scrim"
+  hidden
+  class="fixed inset-0 top-16 z-20 bg-ink/30 backdrop-blur-[1px] lg:hidden"
+>
+</div>
+
+<aside
+  id="docs-sidebar"
+  class="fixed inset-y-0 left-0 top-16 z-20 w-72 -translate-x-full overflow-y-auto border-r border-hairline bg-canvas px-4 py-8 transition-transform duration-200 lg:sticky lg:top-16 lg:z-0 lg:h-[calc(100vh-4rem)] lg:translate-x-0 lg:bg-transparent"
+  aria-label="강의 목차"
+>
+  <!-- Course header / back to all courses -->
+  <div class="mb-8 px-2">
+    <a
+      href="/docs"
+      class="caption-uppercase font-jetbrains flex items-center gap-1.5 text-muted-soft transition-colors hover:text-ink"
+    >
+      ← 전체 강의
+    </a>
+    <a href={`/docs/${courseSlug}`} class="mt-3 block">
+      <span class="title-sm block transition-colors hover:text-primary-text">
+        {course?.title ?? courseSlug}
+      </span>
+    </a>
+
+    <!-- Course progress (React island) -->
+    <CourseProgress client:load lessonIds={lessonIds} />
+  </div>
+
+  <nav class="flex flex-col gap-8">
+    {
+      groups.map((group) => (
+        <div>
+          <p class="caption-uppercase mb-3 px-2 text-muted-soft">{group.category}</p>
+          <ul class="flex flex-col gap-0.5">
+            {group.items.map((doc, i) => (
+              <li>
+                <a
+                  href={`/docs/${doc.id}`}
+                  aria-current={isActive(doc.id) ? "page" : undefined}
+                  class:list={[
+                    "group flex items-start gap-3 rounded-md px-2 py-2 transition-colors",
+                    isActive(doc.id)
+                      ? "bg-surface-strong text-ink"
+                      : "text-body hover:bg-surface-strong hover:text-ink",
+                  ]}
+                  data-lesson={lessonSlugOf(doc.id)}
+                  data-lesson-id={doc.id}
+                >
+                  <span
+                    class:list={[
+                      "lesson-index code-type w-5 shrink-0 pt-0.5 text-right tabular-nums",
+                      isActive(doc.id) ? "text-primary-text" : "text-muted-soft",
+                    ]}
+                  >
+                    <span class="lesson-num">{String(i + 1).padStart(2, "0")}</span>
+                    <span class="lesson-check" aria-hidden="true">✓</span>
+                  </span>
+                  <span class="body-sm font-medium leading-snug">{doc.data.title}</span>
+                </a>
+              </li>
+            ))}
+          </ul>
+        </div>
+      ))
+    }
+  </nav>
+</aside>
+
+<style>
+  #docs-sidebar.is-open {
+    transform: none;
+  }
+
+  /* 완료한 레슨: 번호를 체크로 대체 */
+  .lesson-check {
+    display: none;
+    color: var(--color-success);
+  }
+  #docs-sidebar a.is-done .lesson-num {
+    display: none;
+  }
+  #docs-sidebar a.is-done .lesson-check {
+    display: inline;
+  }
+</style>
+
+<script>
+  // Mobile sidebar drawer. Toggle button lives in DocsHeader (#sidebar-toggle).
+  function setSidebar(open: boolean) {
+    const btn = document.getElementById("sidebar-toggle");
+    const panel = document.getElementById("docs-sidebar");
+    const scrim = document.getElementById("sidebar-scrim");
+    if (!panel || !scrim) return;
+    panel.classList.toggle("is-open", open);
+    scrim.hidden = !open;
+    btn?.setAttribute("aria-expanded", String(open));
+    btn?.setAttribute("aria-label", open ? "목차 닫기" : "목차 열기");
+    document.body.style.overflow = open ? "hidden" : "";
+  }
+
+  document.addEventListener("click", (e) => {
+    const target = e.target as Element | null;
+    if (target?.closest("#sidebar-toggle")) {
+      const panel = document.getElementById("docs-sidebar");
+      setSidebar(!panel?.classList.contains("is-open"));
+      return;
+    }
+    if (target?.closest("#sidebar-scrim")) {
+      setSidebar(false);
+      return;
+    }
+    if (target?.closest("#docs-sidebar a")) setSidebar(false);
+  });
+
+  document.addEventListener("astro:after-swap", () => {
+    document.body.style.overflow = "";
+  });
+</script>

@@ -1,0 +1,67 @@
+---
+import DocsLayout from "../../../layouts/DocsLayout.astro";
+import { courses } from "@shared/constants";
+import { getCourseGroups, getCourseLessons } from "@lib/docs";
+
+export async function getStaticPaths() {
+  return courses.map((course) => ({
+    params: { course: course.slug },
+    props: { course },
+  }));
+}
+
+const { course } = Astro.props;
+const groups = await getCourseGroups(course.slug);
+const lessons = await getCourseLessons(course.slug);
+const firstLesson = lessons[0];
+---
+
+<DocsLayout title={course.title} description={course.description} courseSlug={course.slug}>
+  <header class="mb-12 border-b border-hairline pb-8">
+    <p class="caption-uppercase font-jetbrains text-primary-text">강의</p>
+    <h1 class="display-lg mt-4">{course.title}</h1>
+    <p class="body-md mt-2 text-muted-soft">{course.subtitle}</p>
+    <p class="body-md mt-4 text-muted">{course.description}</p>
+
+    {
+      firstLesson && (
+        <div class="mt-7">
+          <a
+            href={`/docs/${firstLesson.id}`}
+            class="inline-flex h-12 items-center gap-2 rounded-full bg-ink px-7 text-[0.9375rem] font-medium text-canvas transition-opacity hover:opacity-90"
+          >
+            학습 시작하기 →
+          </a>
+        </div>
+      )
+    }
+  </header>
+
+  <div class="flex flex-col gap-12">
+    {
+      groups.map((group) => (
+        <section>
+          <h2 class="caption-uppercase text-muted-soft">{group.category}</h2>
+          <ul class="mt-4 flex flex-col gap-3">
+            {group.items.map((doc, i) => (
+              <li>
+                <a
+                  href={`/docs/${doc.id}`}
+                  class="group flex items-start gap-4 rounded-lg border border-hairline bg-surface-card p-5 transition-colors hover:border-hairline-strong"
+                >
+                  <span class="code-type pt-0.5 text-muted-soft">{String(i + 1).padStart(2, "0")}</span>
+                  <span class="min-w-0 flex-1">
+                    <span class="title-sm block transition-colors group-hover:text-primary-text">
+                      {doc.data.title}
+                    </span>
+                    <span class="body-sm mt-1 block text-body">{doc.data.description}</span>
+                  </span>
+                </a>
+              </li>
+            ))}
+          </ul>
+        </section>
+      ))
+    }
+  </div>
+</DocsLayout>

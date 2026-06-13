@@ -1,0 +1,45 @@
+---
+import { siteName, siteTagline } from "@shared/constants";
+
+const year = new Date().getFullYear();
+
+const columns = [
+  {
+    title: "둘러보기",
+    links: [
+      { label: "홈", href: "/" },
+      { label: "학습", href: "/docs" },
+    ],
+  },
+];
+---
+
+<footer class="mt-section border-t border-hairline bg-canvas">
+  <div class="container-page flex flex-col gap-10 py-16 md:flex-row md:justify-between">
+    <div class="max-w-xs">
+      <span class="text-[1.25rem] font-medium tracking-tight text-primary-text">{siteName}</span>
+      <p class="body-sm mt-3 text-body">{siteTagline}</p>
+    </div>
+
+    <div class="flex gap-16">
+      {
+        columns.map((col) => (
+          <nav class="flex flex-col gap-3">
+            <span class="caption-uppercase text-muted">{col.title}</span>
+            {col.links.map((link) => (
+              <a href={link.href} class="body-sm text-body transition-colors hover:text-ink">
+                {link.label}
+              </a>
+            ))}
+          </nav>
+        ))
+      }
+    </div>
+  </div>
+
+  <div class="border-t border-hairline-soft">
+    <div class="container-page py-6">
+      <p class="caption text-muted">© {year} {siteName}. All rights reserved.</p>
+    </div>
+  </div>
+</footer>

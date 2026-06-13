@@ -1,0 +1,47 @@
+---
+import DocsLayout from "../../layouts/DocsLayout.astro";
+import { courses, siteName } from "@shared/constants";
+import { getCourseLessons } from "@lib/docs";
+
+const courseCards = await Promise.all(
+  courses.map(async (course) => ({
+    ...course,
+    lessonCount: (await getCourseLessons(course.slug)).length,
+  })),
+);
+---
+
+<DocsLayout title="학습" description={`${siteName}의 강의 모음.`}>
+  <header class="mb-12 border-b border-hairline pb-8">
+    <p class="caption-uppercase font-jetbrains text-primary-text">학습</p>
+    <h1 class="display-lg mt-4">강의</h1>
+    <p class="body-md mt-4 text-muted">
+      공부한 내용을 강의 단위로 정리했습니다. 강의를 골라 처음부터 차례로 따라가 보세요.
+    </p>
+  </header>
+
+  <ul class="flex flex-col gap-4">
+    {
+      courseCards.map((course) => (
+        <li>
+          <a
+            href={`/docs/${course.slug}`}
+            class="group flex flex-col rounded-lg border border-hairline bg-surface-card p-6 transition-colors hover:border-hairline-strong"
+          >
+            <div class="caption-uppercase font-jetbrains flex items-center gap-2 text-muted">
+              <span>{course.lessonCount}개 레슨</span>
+            </div>
+            <h2 class="title-md mt-3 transition-colors group-hover:text-primary-text">
+              {course.title}
+            </h2>
+            <p class="body-sm mt-1 text-muted-soft">{course.subtitle}</p>
+            <p class="body-sm mt-3 text-body">{course.description}</p>
+            <span class="mt-5 text-[0.8125rem] font-medium text-primary-text transition-colors group-hover:text-primary-active">
+              강의 보기 →
+            </span>
+          </a>
+        </li>
+      ))
+    }
+  </ul>
+</DocsLayout>

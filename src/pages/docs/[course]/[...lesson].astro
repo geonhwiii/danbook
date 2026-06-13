@@ -1,0 +1,169 @@
+---
+import { render } from "astro:content";
+import DocsLayout from "../../../layouts/DocsLayout.astro";
+import LessonComplete from "../../../components/react/LessonComplete.tsx";
+import { courses, courseBySlug } from "@shared/constants";
+import { getCourseLessons, courseSlugOf, lessonSlugOf } from "@lib/docs";
+
+export async function getStaticPaths() {
+  const paths = [];
+  for (const course of courses) {
+    const lessons = await getCourseLessons(course.slug);
+    for (let i = 0; i < lessons.length; i++) {
+      const doc = lessons[i];
+      paths.push({
+        params: { course: course.slug, lesson: lessonSlugOf(doc.id) },
+        props: {
+          doc,
+          prev: i > 0 ? lessons[i - 1] : null,
+          next: i < lessons.length - 1 ? lessons[i + 1] : null,
+        },
+      });
+    }
+  }
+  return paths;
+}
+
+const { doc, prev, next } = Astro.props;
+const { Content } = await render(doc);
+const course = courseBySlug(courseSlugOf(doc.id));
+---
+
+<DocsLayout title={doc.data.title} description={doc.data.description} courseSlug={courseSlugOf(doc.id)}>
+  <!-- Header -->
+  <header class="mb-10 border-b border-hairline pb-8">
+    <div class="caption-uppercase font-jetbrains flex flex-wrap items-center gap-x-2 text-muted">
+      {course && <a href={`/docs/${course.slug}`} class="transition-colors hover:text-ink">{course.title}</a>}
+      <span class="text-muted-soft">·</span>
+      <span class="text-primary-text">{doc.data.category}</span>
+    </div>
+    <h1 class="display-lg mt-4">{doc.data.title}</h1>
+    <p class="body-md mt-4 text-muted">{doc.data.description}</p>
+  </header>
+
+  <!-- Body -->
+  <div class="prose">
+    <Content />
+  </div>
+
+  <!-- Lesson completion bar (React island) -->
+  <LessonComplete client:load lessonId={doc.id} />
+
+  <!-- Prev / next navigation (within the course) -->
+  {
+    (prev || next) && (
+      <nav class="mt-16 border-t border-hairline pt-10" aria-label="이전 레슨과 다음 레슨">
+        <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
+          {prev ? (
+            <a
+              href={`/docs/${prev.id}`}
+              class="group flex flex-col gap-1 rounded-md border border-hairline p-5 transition-colors hover:border-hairline-strong"
+            >
+              <span class="caption-uppercase font-jetbrains text-muted-soft">← 이전</span>
+              <span class="title-sm mt-1 transition-colors group-hover:text-primary-text">
+                {prev.data.title}
+              </span>
+            </a>
+          ) : (
+            <span />
+          )}
+          {next && (
+            <a
+              href={`/docs/${next.id}`}
+              class="group flex flex-col gap-1 rounded-md border border-hairline p-5 text-right transition-colors hover:border-hairline-strong"
+            >
+              <span class="caption-uppercase font-jetbrains text-muted-soft">다음 →</span>
+              <span class="title-sm mt-1 transition-colors group-hover:text-primary-text">
+                {next.data.title}
+              </span>
+            </a>
+          )}
+        </div>
+      </nav>
+    )
+  }
+</DocsLayout>
+
+<script>
+  // Code-block copy buttons. Runs on initial load and after every View
+  // Transition navigation (astro:page-load fires on both).
+  function enhanceDoc() {
+    const article = document.querySelector(".prose");
+    if (!article) return;
+
+    const clipboardIcon =
+      '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" aria-hidden="true"><rect x="9" y="9" width="11" height="11" rx="2" stroke="currentColor" stroke-width="1.8"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>';
+    const checkIcon =
+      '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="m20 6-11 11-5-5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+
+    const figures = article.querySelectorAll<HTMLElement>(
+      "figure[data-rehype-pretty-code-figure]",
+    );
+    figures.forEach((figure) => {
+      if (figure.querySelector(".code-copy")) return; // already enhanced
+      const pre = figure.querySelector("pre");
+      const code = figure.querySelector("pre code");
+      if (!pre || !code) return;
+
+      let header = figure.querySelector<HTMLElement>(
+        "figcaption[data-rehype-pretty-code-title]",
+      );
+      if (!header) {
+        const lang =
+          pre.getAttribute("data-language") || code.getAttribute("data-language") || "text";
+        header = document.createElement("div");
+        header.className = "code-header";
+        const label = document.createElement("span");
+        label.className = "code-header__lang";
+        label.textContent = lang;
+        header.appendChild(label);
+        figure.insertBefore(header, pre);
+      }
+
+      const btn = document.createElement("button");
+      btn.type = "button";
+      btn.className = "code-copy";
+      btn.setAttribute("aria-label", "코드 복사");
+      btn.innerHTML = `<span class="code-copy__icon">${clipboardIcon}</span><span class="code-copy__label">Copy</span>`;
+
+      const copyText = async (text: string) => {
+        try {
+          await navigator.clipboard.writeText(text);
+          return true;
+        } catch {
+          const ta = document.createElement("textarea");
+          ta.value = text;
+          ta.style.position = "fixed";
+          ta.style.opacity = "0";
+          document.body.appendChild(ta);
+          ta.select();
+          let ok = false;
+          try {
+            ok = document.execCommand("copy");
+          } catch {
+            ok = false;
+          }
+          ta.remove();
+          return ok;
+        }
+      };
+
+      let resetTimer: ReturnType<typeof setTimeout> | undefined;
+      btn.addEventListener("click", async () => {
+        const text = code.textContent ?? "";
+        if (!(await copyText(text))) return;
+        btn.classList.add("is-copied");
+        btn.innerHTML = `<span class="code-copy__icon">${checkIcon}</span><span class="code-copy__label">Copied</span>`;
+        clearTimeout(resetTimer);
+        resetTimer = setTimeout(() => {
+          btn.classList.remove("is-copied");
+          btn.innerHTML = `<span class="code-copy__icon">${clipboardIcon}</span><span class="code-copy__label">Copy</span>`;
+        }, 2000);
+      });
+
+      header.appendChild(btn);
+    });
+  }
+
+  document.addEventListener("astro:page-load", enhanceDoc);
+</script>
