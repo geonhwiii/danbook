@@ -1,0 +1,239 @@
+---
+title: 서버와 클라이언트 다루기
+description: 작은 웹 서버를 만들고 fetch로 요청을 보내며 HTTP 동작을 직접 확인합니다. query 파싱과 인코딩, GET과 POST의 차이, 폼 전송, Post-Redirect-Get 패턴, JSON API를 다룹니다.
+category: HTTP 기초
+order: 2
+---
+
+import Quiz from '@components/react/Quiz.tsx';
+
+1편에서는 요청과 응답을 들여다봤습니다. 이번에는 직접 작은 웹 서버를 만들어 요청을 받아 보고, `fetch`로 클라이언트가 되어 요청을 보내봅니다. 양쪽을 모두 다뤄 보면 HTTP의 동작이 더 분명해집니다. 예제는 Node.js와 브라우저 기준이지만, 핵심은 언어와 무관한 HTTP 개념입니다.
+
+## 가장 단순한 서버
+
+웹 서버는 두 부분으로 나눌 수 있습니다. 포트를 열고 요청을 받는 부분, 그리고 받은 요청을 처리해 응답을 만드는 **핸들러**입니다. Node.js 내장 `http` 모듈로 표현하면 다음과 같습니다.
+
+```js
+import { createServer } from 'node:http';
+
+const server = createServer((req, res) => {
+  // 1. 상태 코드와 헤더를 보낸다
+  res.writeHead(200, { 'Content-Type': 'text/plain; charset=utf-8' });
+  // 2. 본문을 쓰고 응답을 끝낸다
+  res.end('Hello, HTTP!\n');
+});
+
+server.listen(8000, () => console.log('http://localhost:8000'));
+```
+
+핸들러 `(req, res) => { ... }`가 요청 하나를 처리합니다. 1편에서 본 응답의 세 부분(상태 코드, 헤더, 본문)이 그대로 코드에 대응됩니다. `writeHead`로 상태 코드와 헤더를, `end`로 본문을 보냅니다. 어떤 경로로 접속해도 항상 `Hello, HTTP!`만 응답하는 서버입니다.
+
+> 같은 포트는 한 번에 한 프로그램만 사용할 수 있습니다. 서버 두 개를 동시에 띄우려면 포트를 다르게 지정해야 합니다.
+
+## 요청을 활용하기: echo 서버
+
+요청 정보를 읽어 응답에 반영해 보겠습니다. `req.url`에는 요청 경로가 들어 있습니다. 경로를 그대로 돌려주는 echo 서버입니다.
+
+```js
+const server = createServer((req, res) => {
+  res.writeHead(200, { 'Content-Type': 'text/plain; charset=utf-8' });
+  res.end(req.url.slice(1)); // '/bears' → 'bears'
+});
+```
+
+`http://localhost:8000/bears`로 접속하면 `bears`가 보입니다. 여기서 몇 가지를 확인할 수 있습니다.
+
+- `http://localhost:8000/spiders#stardust` → `stardust`는 보이지 **않습니다.** fragment(`#`)는 서버로 전송되지 않기 때문입니다.
+- `http://localhost:8000/squid?color=green` → `squid?color=green`처럼 query까지 함께 보입니다. query는 경로의 일부로 전송됩니다.
+
+<Quiz
+  client:visible
+  question="echo 서버에 http://localhost:8000/page?tab=info#top 으로 접속하면 응답에 나타나지 않는 값은?"
+  options={[
+    {
+      text: 'tab=info',
+      explanation: 'query는 서버로 전송되어 req.url에 포함됩니다.',
+    },
+    {
+      text: 'top',
+      correct: true,
+      explanation: 'fragment(#top)는 브라우저에만 남고 서버로 전송되지 않으므로 응답에 나타나지 않습니다.',
+    },
+    {
+      text: 'page',
+      explanation: 'path는 요청에 포함되어 서버가 받습니다.',
+    },
+  ]}
+/>
+
+## query 파싱과 URL 인코딩
+
+검색 같은 기능에서는 `?` 뒤에 여러 **query 파라미터**가 붙습니다. `key=value` 형태로 `&`로 구분합니다.
+
+```text
+GET /search?q=gray+squirrel&tbm=isch HTTP/1.1
+Host: www.google.com
+```
+
+이 query에는 `q`(값 `gray squirrel`)와 `tbm`(값 `isch`) 두 파라미터가 있습니다. 직접 문자열을 쪼개는 대신 `URLSearchParams`로 파싱합니다.
+
+```js
+const url = new URL(req.url, 'http://localhost');
+url.searchParams.get('q'); // 'gray squirrel'
+url.searchParams.get('tbm'); // 'isch'
+```
+
+`gray+squirrel`이 `gray squirrel`로 바뀐 점에 주목하세요. URL에는 공백이나 특수문자를 그대로 넣을 수 없어, 전송 전에 **URL 인코딩**(퍼센트 인코딩)을 거칩니다. 공백은 `+` 또는 `%20`으로, 그 밖의 특수문자는 `%` 뒤 16진수로 바뀝니다. 파싱 단계에서 다시 원래 문자로 복원됩니다.
+
+```js
+encodeURIComponent('gray squirrel & fox'); // 'gray%20squirrel%20%26%20fox'
+```
+
+> 코드에서 URI를 직접 조립할 때는 값에 인코딩이 필요합니다. 예상치 못한 곳에 `%`나 `+`가 보인다면, 어딘가에서 인코딩·디코딩이 빠졌거나 중복됐을 가능성이 큽니다.
+
+## GET과 POST
+
+대부분의 query는 사용자가 직접 입력하기보다 **폼(form) 전송**으로 만들어집니다. 폼의 전송 방식에는 GET과 POST가 있습니다.
+
+```html
+<form action="/search" method="GET">
+  <input type="text" name="q" />
+  <button type="submit">검색</button>
+</form>
+```
+
+- **GET 전송** — 폼 데이터를 URI의 query에 담아 보냅니다(`/search?q=...`). 주소에 남으므로 북마크·새로고침이 가능합니다. 검색처럼 **조회**하는 동작에 적합합니다.
+- **POST 전송** — 폼 데이터를 URI가 아닌 **요청 본문(body)** 에 담아 보냅니다. 장바구니 담기, 글쓰기처럼 리소스를 **생성·변경**하는 동작에 적합합니다.
+
+### 멱등성(idempotence)
+
+**멱등(idempotent)** 한 동작은 한 번 하든 여러 번 하든 결과가 같습니다. "검색 결과 보기"는 멱등하지만 "장바구니에 담기"는 두 번 하면 두 개가 담기므로 멱등하지 않습니다.
+
+GET은 멱등한 조회에, POST는 멱등하지 않은 동작에 씁니다. 브라우저가 새로고침 시 "양식을 다시 제출하시겠습니까?"라고 묻는 것은, 멱등하지 않은 POST를 다시 보낼지 확인하는 것입니다.
+
+<Quiz
+  client:visible
+  question="다음 중 POST로 처리하는 것이 가장 적절한 동작은?"
+  options={[
+    {
+      text: '검색어로 상품 목록을 조회한다.',
+      explanation: '조회는 멱등하며 주소에 남아도 좋으므로 GET이 적합합니다.',
+    },
+    {
+      text: '게시판에 새 댓글을 작성한다.',
+      correct: true,
+      explanation: '리소스를 생성하는 멱등하지 않은 동작이므로 POST가 적합합니다.',
+    },
+    {
+      text: '특정 페이지로 이동하는 링크를 따라간다.',
+      explanation: '링크 이동은 항상 GET 요청입니다.',
+    },
+  ]}
+/>
+
+### POST 요청의 본문 읽기
+
+GET에서는 데이터가 URI에 있지만, POST에서는 본문에 있습니다. POST 요청에는 `Content-Type`과 `Content-Length` 헤더가 함께 들어옵니다 — 1편에서 응답에만 봤던 헤더가 요청에도 붙는 것입니다.
+
+```js
+const server = createServer((req, res) => {
+  if (req.method === 'POST') {
+    let body = '';
+    req.on('data', (chunk) => (body += chunk));
+    req.on('end', () => {
+      const data = new URLSearchParams(body); // 'magic=mystery&secret=spooky'
+      res.writeHead(200, { 'Content-Type': 'text/plain; charset=utf-8' });
+      res.end(`magic=${data.get('magic')}`);
+    });
+  }
+});
+```
+
+> HTTP 헤더 이름은 대소문자를 구분하지 않습니다. `Content-Length`, `content-length`는 같습니다. 다만 사람이 읽기 좋게 일관된 표기를 쓰는 편이 좋습니다.
+
+## Post-Redirect-Get 패턴
+
+폼을 다루는 서버에서 자주 쓰는 설계가 **PRG**(Post-Redirect-Get)입니다. 댓글 작성 같은 흐름을 예로 들면 다음과 같습니다.
+
+1. 사용자가 `/`에 **GET** 요청 → 서버가 `200 OK`와 폼·목록 HTML 응답.
+2. 폼을 작성해 **POST** 전송 → 서버가 데이터를 저장.
+3. 서버가 `200`이 아니라 **`303` 리다이렉트**로 응답하며 `Location: /` 지정.
+4. 브라우저가 리다이렉트를 따라 `/`로 다시 **GET** → 갱신된 목록을 받음.
+
+```js
+// POST 처리 끝부분
+res.writeHead(303, { Location: '/' });
+res.end();
+```
+
+이 패턴의 장점은 사용자가 실제로 보는 모든 페이지가 GET 결과라는 점입니다. 따라서 새로고침하거나 북마크해도 POST가 다시 전송되지 않아, 댓글이 중복 등록되는 사고를 막을 수 있습니다.
+
+## 클라이언트 되기: fetch
+
+이번엔 반대로 코드가 클라이언트가 되어 요청을 보냅니다. 브라우저와 최신 Node.js에는 `fetch`가 내장되어 있습니다.
+
+```js
+const res = await fetch('https://api.example.com/users');
+res.status; // 200
+res.ok; // status가 200~299면 true
+const text = await res.text(); // 본문을 문자열로
+```
+
+`fetch`는 응답을 받기만 하면 성공으로 간주합니다. **404나 500을 받아도 reject되지 않으며**, 네트워크 자체가 끊긴 경우에만 reject됩니다. 따라서 상태 코드는 직접 확인해야 합니다.
+
+```js
+const res = await fetch(url);
+if (!res.ok) {
+  throw new Error(`요청 실패: ${res.status}`);
+}
+```
+
+<Quiz
+  client:visible
+  question="fetch로 존재하지 않는 페이지를 요청해 404를 받았다. 코드 동작으로 옳은 것은?"
+  options={[
+    {
+      text: 'Promise가 reject되어 catch 블록으로 넘어간다.',
+      explanation: 'fetch는 4xx·5xx에서 reject하지 않습니다. reject는 네트워크 오류 등에서만 발생합니다.',
+    },
+    {
+      text: 'Promise는 resolve되고, res.ok는 false, res.status는 404다.',
+      correct: true,
+      explanation: '응답을 받았으므로 resolve되며, 상태 코드는 res.ok / res.status로 직접 확인해야 합니다.',
+    },
+    {
+      text: 'fetch가 자동으로 재시도한 뒤 빈 응답을 반환한다.',
+      explanation: 'fetch는 자동 재시도를 하지 않습니다.',
+    },
+  ]}
+/>
+
+## JSON API 다루기
+
+웹 API에서 가장 널리 쓰는 데이터 형식은 **JSON**(JavaScript Object Notation)입니다. 이름처럼 JavaScript 객체 문법을 기반으로 하며, 서버는 `Content-Type: application/json`으로 응답합니다.
+
+```js
+const res = await fetch('https://swapi.dev/api/people/1/');
+const data = await res.json(); // JSON 문자열을 객체로 파싱
+data.name; // 'Luke Skywalker'
+```
+
+`res.json()`은 본문이 JSON일 때 객체로 변환합니다. 본문이 JSON이 아닐 때(예: HTML 에러 페이지) 호출하면 파싱 오류가 납니다. 그래서 상태 코드를 먼저 확인하고 파싱하는 것이 안전합니다.
+
+```js
+const res = await fetch(url);
+if (!res.ok) throw new Error(`HTTP ${res.status}`);
+const data = await res.json();
+```
+
+POST로 JSON을 보낼 때는 본문과 `Content-Type` 헤더를 함께 지정합니다.
+
+```js
+await fetch('/api/comments', {
+  method: 'POST',
+  headers: { 'Content-Type': 'application/json' },
+  body: JSON.stringify({ text: '안녕하세요' }),
+});
+```
+
+> **정리** · 서버는 요청을 받아 상태 코드·헤더·본문으로 응답하고, 클라이언트(`fetch`)는 그 응답을 받아 처리합니다. GET은 조회, POST는 변경에 쓰며, 폼 흐름에서는 PRG로 중복 전송을 막습니다. API 데이터는 대부분 JSON으로 주고받습니다.

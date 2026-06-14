@@ -28,6 +28,14 @@ export const courses: Course[] = [
       'ping 한 줄에서 출발해 인터넷 전체를 손으로 따라가며 계층을 파악하는 강의입니다. printf·netcat·tcpdump·traceroute 같은 도구로 직접 확인하며 익힙니다.',
     categoryOrder: ['네트워크 기초', '네트워크 심화'],
   },
+  {
+    slug: 'http-and-web-servers',
+    title: '프론트엔드를 위한 HTTP & 웹 서버',
+    subtitle: 'HTTP와 웹 서버의 동작 이해하기',
+    description:
+      '브라우저와 서버가 주고받는 HTTP를 프론트엔드 관점에서 정리합니다. URI·요청/응답·메서드부터 폼·쿠키·세션, 배포·캐싱·HTTPS·HTTP/2까지 fetch·curl·DevTools로 확인하며 익힙니다.',
+    categoryOrder: ['HTTP 기초', 'HTTP 실전'],
+  },
 ];
 
 export const courseBySlug = (slug: string) => courses.find((c) => c.slug === slug);
