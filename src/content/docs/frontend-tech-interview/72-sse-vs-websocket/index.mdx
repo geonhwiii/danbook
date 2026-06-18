@@ -1,0 +1,58 @@
+---
+title: LLM의 텍스트 응답을 구현할 때 SSE와 웹소켓 중 무엇을 선호하나요?
+description: LLM 토큰 스트리밍에 쓰이는 SSE(서버센트 이벤트)와 WebSocket을 비교하고, 단방향 스트리밍에 SSE가 적합한 이유를 정리합니다.
+category: AI 프로젝트
+order: 8
+---
+
+import Quiz from '@components/react/Quiz.tsx';
+
+LLM 응답을 토큰 단위로 흘려보낼 때 흔히 **SSE**와 **WebSocket**을 비교합니다. 결론부터: LLM의 **서버→클라이언트 단방향 텍스트 스트리밍**에는 보통 **SSE(또는 fetch 스트리밍)** 가 더 적합합니다.
+
+## SSE (Server-Sent Events)
+
+HTTP 위에서 서버가 클라이언트로 **단방향 이벤트 스트림**을 보내는 표준입니다.
+
+- **단방향에 최적** — LLM 토큰 흐름처럼 "서버가 계속 밀어 주는" 시나리오에 딱 맞음.
+- **HTTP 기반** — 기존 인프라·프록시·인증과 잘 맞고 구현 단순. 일반 텍스트 스트림.
+- **자동 재연결** — `EventSource`는 끊기면 자동 재연결, `Last-Event-ID`로 재개 지원.
+- **제약** — 기본 `EventSource`는 GET·커스텀 헤더 제한이 있어, POST·헤더가 필요한 LLM 호출은 **fetch + [ReadableStream](/docs/frontend-tech-interview/73-fetch-readablestream)** 으로 SSE 형식을 직접 파싱하는 경우가 많음.
+
+## WebSocket
+
+하나의 TCP 연결로 **양방향 실시간** 통신. ([웹소켓 vs 폴링](/docs/frontend-tech-interview/54-websocket-vs-polling))
+
+- **양방향이 필요할 때** — 음성 대화, 실시간 협업, 빈번한 양방향 상호작용에 적합.
+- **비용** — 별도 프로토콜·연결 관리·재연결·스케일아웃 부담이 큼. 단순 텍스트 스트리밍엔 과함.
+
+## 비교
+
+| 항목              | SSE               | WebSocket              |
+| ----------------- | ----------------- | ---------------------- |
+| 방향              | 단방향(서버→클라) | 양방향                 |
+| 프로토콜          | HTTP              | 별도(ws/wss)           |
+| 재연결            | 내장(자동)        | 직접 구현              |
+| 구현 복잡도       | 낮음              | 상대적으로 높음        |
+| LLM 토큰 스트리밍 | 적합              | 과한 편(양방향 필요시) |
+
+> 선택 기준: **서버가 토큰을 밀어 주기만 하면 SSE/fetch 스트리밍**, **클라이언트도 실시간으로 자주 보내야 하면 WebSocket**. 실제 OpenAI 등 다수 LLM API의 스트리밍이 SSE 형식을 사용합니다.
+
+<Quiz
+  client:visible
+  question="LLM 텍스트 응답 스트리밍에서 SSE와 WebSocket 선택에 대한 설명으로 옳은 것은?"
+  options={[
+    {
+      text: '서버→클라 단방향 토큰 스트리밍에는 HTTP 기반이고 자동 재연결을 지원하는 SSE(또는 fetch 스트리밍)가 대체로 적합하다.',
+      correct: true,
+      explanation: 'LLM 토큰은 서버가 미는 단방향 흐름이라, HTTP 기반·자동 재연결의 SSE가 단순하고 적합합니다.',
+    },
+    {
+      text: '단순 단방향 텍스트 스트리밍에도 항상 WebSocket이 SSE보다 가볍고 단순하다.',
+      explanation: 'WebSocket은 양방향·연결 관리 비용이 있어 단방향 스트리밍엔 과한 편입니다.',
+    },
+    {
+      text: 'SSE는 클라이언트가 서버로도 동시에 실시간 메시지를 푸시하는 양방향 프로토콜이다.',
+      explanation: 'SSE는 서버→클라 단방향입니다. 양방향이 필요하면 WebSocket을 씁니다.',
+    },
+  ]}
+/>

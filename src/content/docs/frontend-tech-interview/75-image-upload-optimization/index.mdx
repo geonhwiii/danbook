@@ -1,0 +1,59 @@
+---
+title: 고화질 사진 업로드 시 토큰 비용을 아끼고 처리 속도를 높이는 방법은 무엇인가요?
+description: 멀티모달 모델에 고해상도 이미지를 보낼 때 리사이즈·압축·해상도 조절로 토큰 비용과 처리 시간을 줄이는 방법을 정리합니다.
+category: AI 프로젝트
+order: 7
+---
+
+import Quiz from '@components/react/Quiz.tsx';
+
+멀티모달 모델은 이미지를 **타일/패치 단위로 토큰화**하므로, **해상도가 높을수록 토큰이 많이 들고 처리도 느려집니다**. 대부분의 작업은 원본 해상도가 필요 없으므로, 보내기 전에 **클라이언트에서 줄이는 것**이 가장 효과적입니다.
+
+## 토큰을 아끼는 핵심
+
+- **업로드 전 리사이즈** — 모델이 권장/허용하는 최대 변(예: 긴 변 1024~1568px 등 모델별 상한)에 맞춰 다운스케일. 그 이상은 토큰만 늘 뿐 이득이 적음.
+- **압축** — JPEG/WebP로 적절한 품질(예: 0.7~0.85)로 인코딩해 전송량을 줄임(처리 속도↑). 단, 토큰 수는 주로 **픽셀 해상도**가 좌우하므로 리사이즈가 더 직접적.
+- **해상도 옵션 활용** — API가 `detail: low/high` 같은 옵션을 주면, 세밀함이 필요 없을 때 **low**로 토큰을 크게 절감.
+- **불필요한 부분 제거** — 관심 영역만 크롭, 여백 제거.
+- **작업에 맞는 최소 해상도** — OCR/세부 인식은 더 높게, 장면 분류·캡션은 낮게.
+
+## 처리 속도를 높이는 법
+
+- **클라이언트 리사이즈/압축** — `<canvas>`나 `createImageBitmap`으로 줄여 업로드(대역폭·서버 부하↓). 무거운 변환은 **Web Worker**로 메인 스레드 차단 방지.
+- **포맷 선택** — WebP/AVIF로 더 작은 용량.
+- **전송 방식** — 큰 이미지는 [Base64 인라인보다 멀티파트](/docs/frontend-tech-interview/71-multimodal-image-encoding)가 오버헤드가 적음(Base64는 약 33% 증가).
+- **캐싱·중복 방지** — 같은 이미지를 재전송하지 않도록 해시로 캐시.
+
+```ts
+// 캔버스로 긴 변 기준 다운스케일 후 WebP로 압축
+async function downscale(file: File, maxEdge = 1024, quality = 0.8) {
+  const bmp = await createImageBitmap(file);
+  const scale = Math.min(1, maxEdge / Math.max(bmp.width, bmp.height));
+  const canvas = new OffscreenCanvas(bmp.width * scale, bmp.height * scale);
+  canvas.getContext('2d')!.drawImage(bmp, 0, 0, canvas.width, canvas.height);
+  return canvas.convertToBlob({ type: 'image/webp', quality });
+}
+```
+
+> 요약: **"해상도를 작업에 필요한 만큼만"** — 업로드 전 리사이즈가 토큰 비용을 가장 직접적으로 줄이고, 클라이언트 압축·적절한 포맷·전송 방식이 속도를 끌어올립니다.
+
+<Quiz
+  client:visible
+  question="멀티모달 모델에 고화질 사진을 보낼 때 토큰 비용을 줄이는 가장 직접적인 방법은?"
+  options={[
+    {
+      text: '작업에 필요한 만큼만 해상도를 낮춰(업로드 전 리사이즈) 모델이 처리하는 픽셀 수를 줄인다.',
+      correct: true,
+      explanation:
+        '이미지 토큰 수는 주로 해상도(픽셀)가 좌우하므로, 업로드 전 리사이즈가 토큰 비용을 가장 직접적으로 줄입니다.',
+    },
+    {
+      text: '원본 해상도를 그대로 두고 Base64로 인코딩하면 토큰 수가 줄어든다.',
+      explanation: 'Base64는 전송 크기를 약 33% 늘리고 토큰을 줄이지 않습니다. 해상도를 낮춰야 토큰이 줄어듭니다.',
+    },
+    {
+      text: '항상 최고 해상도로 보내야 모델이 더 빠르고 저렴하게 처리한다.',
+      explanation: '해상도가 높을수록 토큰·처리 시간이 늘어납니다. 필요한 최소 해상도가 효율적입니다.',
+    },
+  ]}
+/>

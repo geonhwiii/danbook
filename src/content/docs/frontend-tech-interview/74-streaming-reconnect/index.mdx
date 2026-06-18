@@ -1,0 +1,65 @@
+---
+title: 스트리밍 도중 네트워크가 끊겼을 때 자연스럽게 재연결하는 전략은 무엇인가요?
+description: LLM 스트리밍 중 연결이 끊겼을 때 이어받기 위한 재시도·백오프·재개(resume)·상태 보존 전략을 정리합니다.
+category: AI 프로젝트
+order: 10
+---
+
+import Quiz from '@components/react/Quiz.tsx';
+
+긴 LLM 스트리밍은 도중에 네트워크가 끊길 수 있습니다. 사용자가 처음부터 다시 하지 않도록, **끊김을 감지 → 안전하게 재시도 → 가능하면 이어받기(resume)** 하는 설계가 필요합니다.
+
+## 핵심 전략
+
+- **끊김 감지** — [스트림 읽기](/docs/frontend-tech-interview/73-fetch-readablestream)에서 예외/조기 `done`, 타임아웃(일정 시간 토큰 미수신), `navigator.onLine`·`online`/`offline` 이벤트로 감지.
+- **지수 백오프 + 지터** — 즉시 반복 재시도하지 말고 대기 시간을 점점 늘리고(예: 1s→2s→4s) 무작위 지터를 더해 서버 폭주를 방지. 최대 재시도 횟수 제한.
+- **상태 보존** — 이미 받은 부분 텍스트를 유지하고, 재연결 시 그 위에 이어 붙임. 사용자 입력·대화 컨텍스트는 보관.
+- **재개(resume) vs 재요청**
+  - **SSE**: `EventSource`는 자동 재연결하며 `Last-Event-ID` 헤더로 마지막 받은 지점 이후를 서버가 이어 보내도록 설계 가능.
+  - **이어받기 지원이 없으면**: 서버에 "이미 N 토큰까지 받음"을 알리거나, **idempotency 키/요청 ID**로 같은 생성을 재개·중복 방지.
+  - 최후엔 동일 프롬프트로 **재생성**(중복 출력 가능성 안내).
+- **명확한 UX** — "연결이 끊겨 재연결 중…" 표시, 진행/실패 상태, 수동 **재시도 버튼** 제공. 무한 로딩 금지.
+- **멱등성·중복 방지** — 재시도가 서버에서 중복 처리/중복 과금되지 않도록 요청 식별자 사용.
+
+## 재연결 루프 예시
+
+```ts
+async function streamWithRetry(send, { maxRetries = 5 } = {}) {
+  let attempt = 0;
+  while (attempt <= maxRetries) {
+    try {
+      await send(); // 스트림 소비 (성공 시 정상 종료)
+      return;
+    } catch (err) {
+      if (err.name === 'AbortError') return; // 사용자가 중단 → 재시도 안 함
+      attempt++;
+      if (attempt > maxRetries) throw err;
+      const delay = Math.min(1000 * 2 ** (attempt - 1), 30_000) + Math.random() * 300;
+      showReconnecting(attempt);
+      await new Promise((r) => setTimeout(r, delay)); // 백오프 + 지터
+    }
+  }
+}
+```
+
+> 주의: 사용자가 [의도적으로 중단](/docs/frontend-tech-interview/68-streaming-abort)한 `AbortError`는 재연결 대상이 아닙니다. 네트워크 오류와 구분해야 합니다.
+
+<Quiz
+  client:visible
+  question="스트리밍 중 네트워크 끊김에 대한 재연결 전략으로 적절하지 않은 것은?"
+  options={[
+    {
+      text: '끊기자마자 지연 없이 즉시 무한 반복으로 재요청을 폭주시킨다.',
+      correct: true,
+      explanation: '즉시 무한 재시도는 서버 폭주를 부릅니다. 지수 백오프+지터와 최대 횟수 제한이 필요합니다.',
+    },
+    {
+      text: '지수 백오프와 지터로 재시도 간격을 늘리고 최대 재시도 횟수를 둔다.',
+      explanation: '적절합니다. 백오프+지터+상한은 안정적 재연결의 기본입니다.',
+    },
+    {
+      text: '이미 받은 부분 응답을 보존하고, 가능하면 마지막 지점 이후를 이어받아 재개한다.',
+      explanation: '적절합니다. 상태 보존과 resume(Last-Event-ID 등)은 매끄러운 재연결의 핵심입니다.',
+    },
+  ]}
+/>

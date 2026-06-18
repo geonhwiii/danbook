@@ -1,0 +1,56 @@
+---
+title: AI 환각으로 잘못 만든 UI 컴포넌트의 렌더링 위험을 어떻게 방지하나요?
+description: LLM이 생성한 UI/코드를 그대로 렌더링할 때의 위험과, 스키마 검증·화이트리스트·샌드박스 등 방어 전략을 정리합니다.
+category: AI 프로젝트
+order: 2
+---
+
+import Quiz from '@components/react/Quiz.tsx';
+
+LLM이 UI 구조나 코드를 생성하면 **환각(hallucination)** 으로 존재하지 않는 컴포넌트·잘못된 props·깨진 구조를 만들 수 있습니다. 이를 그대로 렌더링하면 화면이 깨지거나 앱이 죽고, 심하면 보안 위협이 됩니다. 핵심은 **"신뢰하지 말고 검증하라"** 입니다.
+
+## 위험
+
+- **렌더링 충돌** — 잘못된 구조·존재하지 않는 컴포넌트로 런타임 에러·크래시.
+- **보안** — 생성된 HTML/스크립트를 그대로 삽입하면 [XSS](/docs/frontend-tech-interview/46-frontend-security-threats) 위험.
+- **사용자 신뢰 훼손** — 그럴듯하지만 틀린 UI/정보 노출.
+
+## 방어 전략
+
+- **구조화된 출력 강제** — 자유 코드 대신 **정해진 JSON 스키마(UI 명세)** 로 받게 하고, **Zod 등으로 런타임 검증**. 스키마를 벗어나면 거부.
+- **컴포넌트 화이트리스트** — 미리 정의한 안전한 컴포넌트 맵에서만 렌더. 매핑에 없는 타입은 무시/대체.
+  ```tsx
+  const REGISTRY = { Card, Button, Chart } as const;
+  function Render({ type, props }: UiNode) {
+    const Comp = REGISTRY[type];
+    if (!Comp) return null; // 화이트리스트에 없으면 렌더하지 않음
+    return <Comp {...sanitize(props)} />;
+  }
+  ```
+- **props 검증·정화** — 타입·범위 검증, 문자열은 [정화(DOMPurify)](/docs/frontend-tech-interview/46-frontend-security-threats). `dangerouslySetInnerHTML` 회피.
+- **에러 경계(Error Boundary)** — 렌더 실패를 격리해 전체 앱이 죽지 않게.
+- **샌드박스** — 임의 코드 실행이 불가피하면 격리된 iframe·sandbox에서.
+- **휴먼/규칙 게이트** — 중요한 출력은 미리보기·확인 단계, 폴백 UI 제공.
+
+> 요약: 모델 출력은 **신뢰 불가 입력**으로 취급 → 스키마 검증 → 화이트리스트 렌더 → 에러 경계로 격리. "임의 코드/HTML을 그대로 실행"이 가장 피해야 할 패턴입니다.
+
+<Quiz
+  client:visible
+  question="LLM이 생성한 UI를 안전하게 렌더링하는 방법으로 옳은 것은?"
+  options={[
+    {
+      text: '정해진 스키마로 출력을 받아 런타임 검증하고, 화이트리스트된 컴포넌트만 렌더하며 에러 경계로 격리한다.',
+      correct: true,
+      explanation:
+        '스키마 검증 + 컴포넌트 화이트리스트 + 에러 경계가 환각·크래시·보안 위험을 함께 막는 핵심 방어입니다.',
+    },
+    {
+      text: '모델이 생성한 HTML/스크립트 문자열을 dangerouslySetInnerHTML로 그대로 삽입한다.',
+      explanation: '검증 없는 HTML 삽입은 XSS와 크래시를 부릅니다. 정화·화이트리스트가 필요합니다.',
+    },
+    {
+      text: '모델 출력은 항상 정확하다고 가정하고 검증 없이 바로 렌더링한다.',
+      explanation: '환각 가능성 때문에 모델 출력은 신뢰 불가 입력으로 취급해 검증해야 합니다.',
+    },
+  ]}
+/>

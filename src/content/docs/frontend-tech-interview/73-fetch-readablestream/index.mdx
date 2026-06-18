@@ -1,0 +1,77 @@
+---
+title: Fetch API로 스트리밍 응답을 처리할 때 ReadableStream을 어떻게 다루나요?
+description: fetch 응답의 body(ReadableStream)를 reader로 읽고, 디코딩·청크 누적·SSE 파싱으로 토큰을 점진 처리하는 방법을 정리합니다.
+category: AI 프로젝트
+order: 9
+---
+
+import Quiz from '@components/react/Quiz.tsx';
+
+`fetch` 응답의 `response.body` 는 **`ReadableStream`** 입니다. 전체를 기다리지 않고 **도착하는 청크(chunk)를 순차적으로 읽어** 화면에 점진 출력할 수 있습니다. LLM 토큰 스트리밍 처리의 기본입니다.
+
+## 기본 패턴 (reader)
+
+```ts
+const res = await fetch('/api/chat', { method: 'POST', body, signal });
+const reader = res.body!.getReader();
+const decoder = new TextDecoder();
+
+while (true) {
+  const { value, done } = await reader.read(); // 청크를 하나씩
+  if (done) break;
+  const text = decoder.decode(value, { stream: true }); // Uint8Array → 문자열
+  appendToUI(text); // 도착하는 대로 출력
+}
+```
+
+- `getReader()`로 **리더**를 얻어 `read()`를 반복 호출, `done`이 `true`면 종료.
+- `value`는 **`Uint8Array`(바이트)** 이므로 `TextDecoder`로 디코딩. `{ stream: true }`로 멀티바이트 문자가 청크 경계에서 잘리는 것을 안전 처리.
+
+## SSE 형식 파싱
+
+LLM API는 보통 `data: {...}\n\n` 형태의 SSE를 보냅니다. 청크는 **줄·이벤트 경계에 맞지 않게** 도착할 수 있으므로 **버퍼에 모아 경계 단위로 파싱**합니다.
+
+```ts
+let buffer = '';
+while (true) {
+  const { value, done } = await reader.read();
+  if (done) break;
+  buffer += decoder.decode(value, { stream: true });
+
+  const parts = buffer.split('\n\n'); // 이벤트 구분
+  buffer = parts.pop() ?? ''; // 마지막 미완성 조각은 남겨 둠
+  for (const part of parts) {
+    const line = part.replace(/^data: /, '');
+    if (line === '[DONE]') return;
+    const json = JSON.parse(line);
+    appendToUI(json.delta);
+  }
+}
+```
+
+## 주의할 점
+
+- **부분 청크 처리** — 한 청크가 한 토큰/한 줄과 일치하지 않음. 반드시 버퍼링 후 경계로 파싱.
+- **취소** — `signal`로 [중단](/docs/frontend-tech-interview/68-streaming-abort) 연결. 중단 시 `reader.cancel()`도 고려.
+- **에러·종료** — `done`과 `[DONE]` 신호 구분, `try/catch`로 네트워크 오류 처리, 끝나면 리더 해제.
+- **모던 대안** — 환경에 따라 `for await (const chunk of res.body)`(async iterator)나 `TextDecoderStream`을 `pipeThrough`로 사용할 수도 있음.
+
+<Quiz
+  client:visible
+  question="fetch의 ReadableStream으로 스트리밍 응답을 처리하는 방법으로 옳은 것은?"
+  options={[
+    {
+      text: 'response.body의 reader로 read()를 반복 호출해 청크를 받고, TextDecoder로 디코딩하며 버퍼에 모아 경계 단위로 파싱한다.',
+      correct: true,
+      explanation: 'getReader().read() 반복 + TextDecoder 디코딩 + 버퍼링 후 경계 파싱이 스트리밍 처리의 핵심입니다.',
+    },
+    {
+      text: '각 청크는 항상 완전한 한 줄(또는 한 토큰)과 정확히 일치하므로 버퍼링 없이 바로 JSON.parse하면 된다.',
+      explanation: '청크는 줄/이벤트 경계와 일치하지 않을 수 있어, 버퍼에 모아 경계 단위로 파싱해야 합니다.',
+    },
+    {
+      text: 'ReadableStream은 응답 전체가 도착해야만 한 번에 읽을 수 있어 점진 출력이 불가능하다.',
+      explanation: '스트림은 도착하는 청크를 순차적으로 읽어 점진 출력할 수 있습니다. 그것이 스트리밍의 목적입니다.',
+    },
+  ]}
+/>

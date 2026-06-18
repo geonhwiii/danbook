@@ -1,0 +1,70 @@
+---
+title: 생성형 AI 채팅 UI에서 중단 기능을 구현한다면 어떤 기술을 사용할 수 있나요?
+description: 스트리밍 중인 LLM 응답을 멈추는 중단 기능을 AbortController로 구현하는 방법과 고려사항을 정리합니다.
+category: AI 프로젝트
+order: 3
+---
+
+import Quiz from '@components/react/Quiz.tsx';
+
+채팅 UI에서 "멈추기" 버튼은 진행 중인 요청·스트리밍을 취소합니다. 브라우저 표준인 **`AbortController`** 가 핵심 도구입니다.
+
+## AbortController로 fetch 취소
+
+`AbortController`의 `signal`을 `fetch`에 넘기고, 중단 시 `abort()`를 호출하면 요청과 스트림 읽기가 취소됩니다.
+
+```tsx
+const controller = new AbortController();
+
+// 요청 시작
+const res = await fetch('/api/chat', {
+  method: 'POST',
+  body: JSON.stringify({ messages }),
+  signal: controller.signal, // 신호 연결
+});
+const reader = res.body!.getReader();
+// ...스트림 읽는 중...
+
+// "멈추기" 버튼 클릭 시
+controller.abort(); // fetch와 reader 읽기가 중단되고 AbortError 발생
+```
+
+```tsx
+try {
+  // 스트림 소비
+} catch (err) {
+  if (err.name === 'AbortError') {
+    // 사용자가 중단한 경우 — 에러가 아닌 정상 흐름으로 처리
+  } else {
+    throw err;
+  }
+}
+```
+
+## 구현 포인트
+
+- **신호 연결** — fetch뿐 아니라 [ReadableStream 읽기 루프](/docs/frontend-tech-interview/73-fetch-readablestream)도 `signal`/플래그로 중단.
+- **상태 관리** — 진행 중 컨트롤러를 보관(예: `useRef`)하고, 완료/중단 시 정리. React에서는 `useEffect` cleanup에서 `abort()`로 언마운트 시 누수 방지.
+- **부분 응답 보존** — 중단 시점까지 받은 텍스트는 화면에 남기고 "중단됨" 표시.
+- **서버 측 정리** — 클라이언트가 끊으면 서버도 LLM 호출을 취소해 비용 절감(`signal`을 상류 API로 전달).
+- **SSE의 경우** — `EventSource`는 `close()`로 종료. 단, `EventSource`는 GET·헤더 제약이 있어 POST 스트리밍은 보통 fetch + ReadableStream을 씁니다.
+
+<Quiz
+  client:visible
+  question="생성형 AI 채팅의 응답 중단 기능 구현으로 가장 적절한 것은?"
+  options={[
+    {
+      text: 'AbortController의 signal을 fetch에 연결하고, 중단 시 controller.abort()로 요청과 스트림 읽기를 취소한다.',
+      correct: true,
+      explanation: 'AbortController는 fetch·스트림 취소의 표준 API로, abort() 호출로 진행 중 응답을 중단합니다.',
+    },
+    {
+      text: '중단 버튼은 화면의 텍스트만 지우고, 네트워크 요청과 서버의 LLM 호출은 계속 진행되게 둔다.',
+      explanation: '요청을 실제로 취소하지 않으면 비용·리소스가 낭비됩니다. abort로 실제 취소해야 합니다.',
+    },
+    {
+      text: 'JavaScript에는 진행 중인 fetch를 취소할 방법이 없어 중단 기능은 구현할 수 없다.',
+      explanation: 'AbortController로 fetch를 취소할 수 있습니다. 구현 가능합니다.',
+    },
+  ]}
+/>
