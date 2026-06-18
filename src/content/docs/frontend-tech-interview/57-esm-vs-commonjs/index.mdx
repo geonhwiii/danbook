@@ -1,0 +1,68 @@
+---
+title: ES 모듈과 CommonJS 모듈의 차이점은 무엇인가요?
+description: import/export 기반 ESM과 require/module.exports 기반 CommonJS의 문법·로딩 방식·동작 차이를 정리합니다.
+category: 실무 프로젝트 지식
+order: 2
+---
+
+import Quiz from '@components/react/Quiz.tsx';
+
+자바스크립트에는 코드를 모듈로 나누는 두 가지 주요 시스템이 있습니다. **ESM(ECMAScript Modules)** 은 언어 표준 모듈 시스템이고, **CommonJS(CJS)** 는 Node.js가 초기부터 사용해 온 모듈 시스템입니다.
+
+## 문법
+
+```js
+// ESM
+import { sum } from './math.js';
+export const PI = 3.14;
+export default function () {}
+
+// CommonJS
+const { sum } = require('./math');
+module.exports.PI = 3.14;
+module.exports = function () {};
+```
+
+## 핵심 차이
+
+- **로딩 시점** — ESM은 **정적(static)** 구조로, 실행 전에 import/export가 분석됩니다. CommonJS는 `require`가 **런타임에 동기적으로** 실행됩니다.
+- **정적 분석·트리 셰이킹** — ESM은 정적 구조 덕에 번들러가 사용하지 않는 export를 제거(트리 셰이킹)하기 좋습니다. CJS는 동적이라 어렵습니다.
+- **비동기 vs 동기** — ESM은 비동기 로딩에 적합(브라우저에서 동작). CJS의 `require`는 동기.
+- **바인딩 방식** — ESM import는 **살아있는 참조(live binding)** 로 원본 값 변경이 반영됩니다. CJS는 내보내는 시점의 **값 복사**에 가깝습니다.
+- **this / 최상위** — CJS 모듈 최상위 `this`는 `module.exports`, ESM 최상위 `this`는 `undefined`. ESM은 기본적으로 strict mode.
+- **최상위 await** — ESM은 top-level `await` 지원, CJS는 미지원.
+
+## 환경
+
+- 브라우저는 `<script type="module">` 로 ESM을 직접 지원합니다.
+- Node.js는 둘 다 지원하며, `package.json`의 `"type": "module"` 또는 확장자(`.mjs`/`.cjs`)로 구분합니다.
+- 오늘날 프런트엔드/번들러 생태계는 ESM을 표준으로 권장합니다.
+
+| 항목            | ESM                 | CommonJS              |
+| --------------- | ------------------- | --------------------- |
+| 문법            | `import` / `export` | `require` / `exports` |
+| 로딩            | 정적 분석, 비동기   | 런타임, 동기          |
+| 트리 셰이킹     | 용이                | 어려움                |
+| 바인딩          | 라이브 바인딩(참조) | 값 복사               |
+| top-level await | 지원                | 미지원                |
+
+<Quiz
+  client:visible
+  question="ESM과 CommonJS의 차이로 옳은 것은?"
+  options={[
+    {
+      text: 'ESM은 정적 구조라 트리 셰이킹에 유리하고, CommonJS의 require는 런타임에 동기적으로 실행된다.',
+      correct: true,
+      explanation: 'ESM은 정적 분석이 가능해 트리 셰이킹에 유리하고, CJS는 동기 런타임 로딩이 특징입니다.',
+    },
+    {
+      text: 'CommonJS의 import는 정적 분석이 가능해 트리 셰이킹에 더 적합하다.',
+      explanation:
+        'CommonJS는 require 기반의 동적 로딩이라 트리 셰이킹이 어렵습니다. 정적 분석에 유리한 쪽은 ESM입니다.',
+    },
+    {
+      text: 'ESM과 CommonJS는 문법만 다를 뿐 로딩 방식·바인딩 동작은 완전히 동일하다.',
+      explanation: '로딩 시점(정적/런타임), 바인딩(참조/복사), top-level await 지원 등 동작이 다릅니다.',
+    },
+  ]}
+/>

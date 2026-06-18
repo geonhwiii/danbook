@@ -1,0 +1,57 @@
+---
+title: 세션 관리와 쿠키 기반 보안 이슈를 설명할 수 있나요?
+description: 쿠키·세션으로 인증 상태를 유지하는 방식과, 쿠키 보안 속성으로 위협을 막는 방법을 정리합니다.
+category: 인프라·보안·네트워크
+order: 9
+---
+
+import Quiz from '@components/react/Quiz.tsx';
+
+HTTP는 **무상태**라서, 로그인 상태를 유지하려면 별도 메커니즘이 필요합니다. 대표적으로 **쿠키 + 세션**을 씁니다.
+
+## 세션 기반 인증
+
+1. 로그인 성공 시 서버가 **세션을 생성**하고 세션 ID를 발급합니다.
+2. 세션 ID를 **쿠키**에 담아 클라이언트에 저장합니다.
+3. 이후 요청마다 브라우저가 쿠키를 자동 전송하고, 서버는 세션 ID로 사용자를 식별합니다.
+
+(이와 달리 **토큰 기반**(JWT)은 서버가 상태를 저장하지 않고 토큰 자체로 검증합니다.)
+
+## 쿠키 기반 보안 이슈
+
+- **XSS로 쿠키 탈취** — 스크립트가 `document.cookie`를 읽어 세션을 훔칠 수 있습니다.
+- **CSRF** — 쿠키가 자동 전송되는 성질을 악용해 위조 요청을 보냅니다.
+- **세션 하이재킹/고정** — 세션 ID 탈취·고정으로 가로채기.
+
+## 쿠키 보안 속성
+
+- **`HttpOnly`** — 자바스크립트에서 쿠키 접근 차단 → **XSS로 인한 탈취 방어**.
+- **`Secure`** — HTTPS에서만 쿠키 전송.
+- **`SameSite`** (`Lax`/`Strict`/`None`) — 교차 사이트 요청 시 쿠키 전송 제한 → **CSRF 완화**.
+- **만료(`Expires`/`Max-Age`)** 적절히 설정, 로그아웃 시 세션 무효화, 로그인 시 **세션 ID 재발급**(고정 공격 방어).
+
+```http
+Set-Cookie: sid=abc123; HttpOnly; Secure; SameSite=Lax; Max-Age=3600
+```
+
+핵심은 **`HttpOnly`+`Secure`+`SameSite`** 조합으로 탈취·위조 위협을 줄이는 것입니다.
+
+<Quiz
+  client:visible
+  question="세션 쿠키에 HttpOnly 속성을 주는 주된 이유는?"
+  options={[
+    {
+      text: '자바스크립트의 쿠키 접근을 차단해 XSS로 인한 세션 쿠키 탈취를 막기 위해서다.',
+      correct: true,
+      explanation: 'HttpOnly는 document.cookie 접근을 막아, 스크립트 주입으로 세션이 탈취되는 것을 방어합니다.',
+    },
+    {
+      text: '쿠키를 HTTPS에서만 전송하도록 강제하기 위해서다.',
+      explanation: 'HTTPS에서만 전송하게 하는 것은 Secure 속성입니다. HttpOnly는 JS 접근 차단입니다.',
+    },
+    {
+      text: '교차 사이트 요청에서 쿠키 전송을 제한하기 위해서다.',
+      explanation: '교차 사이트 전송 제한은 SameSite 속성의 역할입니다.',
+    },
+  ]}
+/>

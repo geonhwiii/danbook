@@ -1,0 +1,71 @@
+---
+title: 이벤트 전파나 위임이란 무엇인가요?
+description: 캡처링과 버블링으로 이뤄지는 이벤트 전파, stopPropagation·preventDefault, 이벤트 위임 패턴을 정리합니다.
+category: 자바스크립트 핵심 개념
+order: 15
+---
+
+import Quiz from '@components/react/Quiz.tsx';
+
+DOM에서 이벤트가 발생하면 그 이벤트는 한 요소에만 머무르지 않고 **DOM 트리를 따라 전파(propagation)** 됩니다. 이 전파 흐름을 이해하면 이벤트 위임 같은 강력한 패턴을 쓸 수 있습니다.
+
+## 이벤트 전파의 3단계
+
+1. **캡처링(capturing)** — 최상위(`window`/`document`)에서 시작해 타깃 요소까지 **내려갑니다.**
+2. **타깃(target)** — 실제 이벤트가 발생한 요소에 도달합니다.
+3. **버블링(bubbling)** — 타깃에서 다시 최상위로 **올라갑니다.**
+
+기본적으로 이벤트 리스너는 **버블링 단계**에서 동작합니다. 캡처링 단계에서 잡고 싶으면 `addEventListener`의 세 번째 인자로 `{ capture: true }`를 줍니다.
+
+```js
+parent.addEventListener('click', () => console.log('부모'));
+child.addEventListener('click', () => console.log('자식'));
+// 자식 클릭 시 버블링: '자식' → '부모' 순 출력
+```
+
+## 전파 제어와 기본 동작 막기
+
+- **`event.stopPropagation()`** — 이벤트가 더 이상 전파되지 않게 막습니다(버블링/캡처링 중단).
+- **`event.preventDefault()`** — 브라우저의 기본 동작(링크 이동, 폼 제출 등)을 막습니다. 전파와는 별개입니다.
+
+```js
+link.addEventListener('click', (e) => {
+  e.preventDefault(); // 링크 이동 막기
+  e.stopPropagation(); // 부모로 전파 막기
+});
+```
+
+## 이벤트 위임 (event delegation)
+
+버블링을 활용해, 자식마다 리스너를 다는 대신 **부모에 하나만 달고** `event.target`으로 어느 자식에서 발생했는지 판별하는 패턴입니다.
+
+```js
+// 리스트 항목이 100개여도 리스너는 하나
+list.addEventListener('click', (e) => {
+  const item = e.target.closest('li');
+  if (!item) return;
+  console.log('클릭된 항목:', item.dataset.id);
+});
+```
+
+**장점**: ① 리스너 수를 줄여 메모리·성능에 유리하고, ② 나중에 동적으로 추가되는 자식 요소도 별도 등록 없이 자동으로 처리됩니다.
+
+<Quiz
+  client:visible
+  question="이벤트 위임(event delegation)의 핵심 원리로 옳은 것은?"
+  options={[
+    {
+      text: '버블링을 활용해 부모 요소에 리스너 하나를 달고 event.target으로 대상을 판별한다.',
+      correct: true,
+      explanation: '이벤트가 부모로 버블링되는 성질을 이용해, 자식마다 리스너를 달지 않고 부모에서 한 번에 처리합니다.',
+    },
+    {
+      text: '모든 자식 요소에 개별적으로 리스너를 등록해 정확도를 높인다.',
+      explanation: '그것은 위임이 아니라 개별 등록입니다. 위임은 오히려 개별 등록을 줄이는 패턴입니다.',
+    },
+    {
+      text: '캡처링 단계에서만 동작하며 버블링과는 무관하다.',
+      explanation: '이벤트 위임은 주로 버블링을 이용합니다.',
+    },
+  ]}
+/>

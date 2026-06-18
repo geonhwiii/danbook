@@ -1,0 +1,59 @@
+---
+title: REST API와 RESTful API를 설명할 수 있나요?
+description: 자원 중심 설계 원칙인 REST와, 그 제약을 충실히 지킨 API를 가리키는 RESTful의 의미를 정리합니다.
+category: 인프라·보안·네트워크
+order: 1
+---
+
+import Quiz from '@components/react/Quiz.tsx';
+
+**REST(REpresentational State Transfer)** 는 웹의 자원을 다루기 위한 **아키텍처 스타일**입니다. HTTP를 그 원칙에 맞게 활용해 만든 API를 REST API라고 부릅니다.
+
+## REST의 핵심 원칙
+
+- **자원(Resource) 중심** — 모든 것을 자원으로 보고 URI로 식별합니다. (`/users/1`)
+- **행위는 HTTP 메서드로** — 조회 `GET`, 생성 `POST`, 수정 `PUT`/`PATCH`, 삭제 `DELETE`.
+- **표현(Representation)** — 자원의 상태를 JSON·XML 등의 형식으로 주고받습니다.
+- **무상태(Stateless)** — 서버는 요청 간 클라이언트 상태를 저장하지 않고, 각 요청은 필요한 정보를 모두 담습니다.
+- **균일한 인터페이스(Uniform Interface)** — 일관된 규칙으로 자원을 다룹니다.
+
+## REST API vs RESTful API
+
+둘은 사실상 같은 개념을 가리키지만 뉘앙스가 다릅니다.
+
+- **REST API** — REST 스타일을 표방하는 API를 통칭합니다.
+- **RESTful API** — REST의 제약 조건을 **충실히(properly) 지킨** API라는 의미를 강조하는 표현입니다.
+
+즉 "RESTful하다"는 것은 자원을 URI로 잘 표현하고, 메서드를 의미에 맞게 쓰며, 무상태를 지키는 등 REST 원칙을 제대로 따른다는 뜻입니다.
+
+## 잘 설계된 예
+
+| 동작            | 메서드 + URI      |
+| --------------- | ----------------- |
+| 사용자 목록     | `GET /users`      |
+| 사용자 1명 조회 | `GET /users/1`    |
+| 사용자 생성     | `POST /users`     |
+| 사용자 수정     | `PATCH /users/1`  |
+| 사용자 삭제     | `DELETE /users/1` |
+
+URI에 동사(`/getUser`, `/createUser`)를 넣지 않고 **명사(자원)** 로 표현하며, 행위는 메서드로 구분하는 것이 RESTful 설계의 기본입니다.
+
+<Quiz
+  client:visible
+  question="RESTful API 설계 원칙으로 옳은 것은?"
+  options={[
+    {
+      text: 'URI는 자원을 명사로 표현하고, 행위는 GET·POST 같은 HTTP 메서드로 구분한다.',
+      correct: true,
+      explanation: 'REST는 자원을 URI로 식별하고 행위를 HTTP 메서드로 표현하는 것을 원칙으로 합니다.',
+    },
+    {
+      text: '서버가 각 클라이언트의 상태를 세션에 저장해 두는 것이 REST의 핵심이다.',
+      explanation: 'REST는 무상태(stateless)를 원칙으로 합니다. 서버는 요청 간 상태를 저장하지 않습니다.',
+    },
+    {
+      text: 'URI에 getUser, deleteUser처럼 동사를 넣는 것이 권장된다.',
+      explanation: 'URI는 동사가 아닌 자원(명사)으로 표현하고, 동작은 메서드로 구분하는 것이 RESTful합니다.',
+    },
+  ]}
+/>

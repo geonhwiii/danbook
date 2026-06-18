@@ -1,0 +1,86 @@
+---
+title: 타입스크립트를 사용하는 이유는 무엇이며, interface와 type의 차이는 무엇인가요?
+description: 정적 타입으로 버그를 줄이는 타입스크립트의 이점과, 타입 정의 도구인 interface와 type의 차이를 정리합니다.
+category: 자바스크립트 핵심 개념
+order: 20
+---
+
+import Quiz from '@components/react/Quiz.tsx';
+
+타입스크립트는 자바스크립트에 **정적 타입(static type)** 을 더한 언어입니다. 코드를 실행하기 전, 컴파일 시점에 타입을 검사해 많은 버그를 미리 잡아줍니다.
+
+## 타입스크립트를 쓰는 이유
+
+- **컴파일 타임 에러 검출** — 잘못된 프로퍼티 접근, 타입 불일치 등을 실행 전에 잡습니다.
+- **자동완성·리팩터링** — 에디터가 타입을 알기에 자동완성·정의 이동·안전한 이름 변경이 강력해집니다.
+- **문서화 효과** — 함수 시그니처와 타입이 그 자체로 명세 역할을 해 협업에 유리합니다.
+- **런타임 비용 없음** — 타입은 컴파일 시 제거되어 실행 결과는 순수 자바스크립트입니다(타입은 런타임 검증을 보장하지 않음).
+
+```ts
+function greet(name: string): string {
+  return `안녕, ${name}`;
+}
+greet(42); // 컴파일 에러: number를 string에 넣을 수 없음
+```
+
+## interface와 type의 공통점
+
+둘 다 객체의 형태를 정의할 수 있고, 확장(상속)도 가능합니다. 대부분의 객체 타입 정의에서는 서로 바꿔 쓸 수 있습니다.
+
+```ts
+interface User {
+  id: number;
+  name: string;
+}
+type UserType = {
+  id: number;
+  name: string;
+};
+```
+
+## 핵심 차이
+
+| 항목                           | `interface`                                | `type`                                  |
+| ------------------------------ | ------------------------------------------ | --------------------------------------- |
+| 선언 병합(declaration merging) | 가능 — 같은 이름을 여러 번 선언하면 합쳐짐 | 불가능 — 중복 선언 시 에러              |
+| 표현 범위                      | 주로 객체·클래스 형태                      | 유니온·튜플·원시 타입 별칭 등 모든 타입 |
+| 확장 방법                      | `extends`                                  | `&`(교차 타입)                          |
+
+```ts
+// interface는 선언 병합이 된다
+interface Window {
+  myCustom: string; // 기존 Window에 프로퍼티 추가
+}
+
+// type만 가능한 표현들
+type ID = string | number; // 유니온
+type Point = [number, number]; // 튜플
+type Status = 'idle' | 'loading'; // 리터럴 유니온
+```
+
+## 무엇을 언제 쓰나
+
+- 객체나 클래스의 형태를 정의하고, 라이브러리처럼 **확장·병합** 여지가 필요하면 `interface`.
+- 유니온·튜플·조건부 타입 등 **객체가 아닌 복잡한 타입**이 필요하면 `type`.
+
+실무에서는 "객체 형태는 interface, 그 외 복합 타입은 type"으로 정하거나, 팀 컨벤션에 맞춰 일관되게 쓰면 됩니다.
+
+<Quiz
+  client:visible
+  question="interface와 type의 차이로 옳은 것은?"
+  options={[
+    {
+      text: 'interface는 같은 이름으로 여러 번 선언하면 자동으로 병합(declaration merging)되지만, type은 불가능하다.',
+      correct: true,
+      explanation: 'interface만 선언 병합을 지원합니다. type은 같은 이름을 중복 선언하면 에러입니다.',
+    },
+    {
+      text: 'type은 객체 형태만 정의할 수 있고 유니온 타입은 정의할 수 없다.',
+      explanation: '반대로 type은 유니온·튜플·리터럴 등 객체가 아닌 타입까지 폭넓게 표현할 수 있습니다.',
+    },
+    {
+      text: '타입스크립트의 타입은 런타임까지 유지되어 실행 중 타입 검증을 보장한다.',
+      explanation: '타입은 컴파일 시 제거됩니다. 런타임 검증을 보장하지 않으므로 별도의 런타임 검증이 필요합니다.',
+    },
+  ]}
+/>

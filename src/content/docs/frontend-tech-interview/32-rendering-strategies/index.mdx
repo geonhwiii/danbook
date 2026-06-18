@@ -1,0 +1,55 @@
+---
+title: CSR, SSR, SSG의 차이를 설명할 수 있나요?
+description: HTML을 어디서·언제 만드는지에 따라 나뉘는 CSR·SSR·SSG(그리고 ISR)의 동작과 적합한 상황을 정리합니다.
+category: Next.js 핵심 개념
+order: 2
+---
+
+import Quiz from '@components/react/Quiz.tsx';
+
+렌더링 전략은 **HTML을 어디서(클라이언트/서버), 언제(요청 시/빌드 시) 만드느냐**의 차이입니다. Next.js는 이 전략들을 페이지 단위로 선택할 수 있게 해 줍니다.
+
+## CSR (Client-Side Rendering)
+
+브라우저가 빈 HTML과 JS 번들을 받아 **클라이언트에서 화면을 그립니다.** ([자세히](/docs/frontend-tech-interview/29-csr)) 대시보드처럼 로그인 후 보는, SEO가 중요치 않은 동적 화면에 적합합니다.
+
+## SSR (Server-Side Rendering)
+
+**요청이 올 때마다 서버에서** HTML을 생성해 내려보냅니다. 항상 최신 데이터를 담은 완성된 HTML이 오므로 SEO·초기 표시에 유리하지만, 매 요청 서버 연산이 들어 TTFB가 늘 수 있습니다. 자주 바뀌고 개인화된 페이지에 적합합니다.
+
+## SSG (Static Site Generation)
+
+**빌드 시점에 미리** HTML을 만들어 두고, 요청 시 정적 파일을 그대로 제공합니다. 가장 빠르고 CDN 캐싱에 유리하지만, 내용이 바뀌면 다시 빌드해야 합니다. 블로그·문서·마케팅 페이지처럼 잘 안 바뀌는 콘텐츠에 적합합니다.
+
+## ISR (Incremental Static Regeneration)
+
+SSG의 확장으로, 정적 페이지를 **일정 주기(revalidate)마다 백그라운드에서 다시 생성**합니다. 정적의 속도를 누리면서 데이터를 주기적으로 갱신할 수 있습니다.
+
+## 비교
+
+| 전략 | HTML 생성 시점   | 데이터 최신성  | 대표 용도            |
+| ---- | ---------------- | -------------- | -------------------- |
+| CSR  | 브라우저 런타임  | 실시간         | 로그인 후 대시보드   |
+| SSR  | 매 요청          | 항상 최신      | 개인화·실시간 페이지 |
+| SSG  | 빌드 시          | 빌드 시점 고정 | 블로그·문서          |
+| ISR  | 빌드 + 주기 갱신 | 주기적 갱신    | 상품·뉴스 목록       |
+
+<Quiz
+  client:visible
+  question="SSR과 SSG의 가장 큰 차이는 무엇인가요?"
+  options={[
+    {
+      text: 'SSR은 요청마다 서버에서 HTML을 생성하고, SSG는 빌드 시점에 미리 HTML을 만들어 둔다.',
+      correct: true,
+      explanation: 'HTML 생성 "시점"이 핵심 차이입니다. SSR은 요청 시, SSG는 빌드 시 생성합니다.',
+    },
+    {
+      text: 'SSR은 자바스크립트를 쓰고, SSG는 자바스크립트를 전혀 쓰지 않는다.',
+      explanation: '둘 다 리액트/JS를 사용합니다. 차이는 HTML을 만드는 시점입니다.',
+    },
+    {
+      text: 'SSG는 SEO에 불리하고 SSR만 SEO에 유리하다.',
+      explanation: '둘 다 완성된 HTML을 제공하므로 SEO에 유리합니다. CSR이 상대적으로 불리합니다.',
+    },
+  ]}
+/>

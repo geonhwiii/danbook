@@ -1,0 +1,78 @@
+---
+title: 클래스 컴포넌트와 함수형 컴포넌트의 차이점은 무엇인가요?
+description: 생명주기 메서드와 this에 의존하던 클래스 컴포넌트와, 훅으로 상태·효과를 다루는 함수형 컴포넌트의 차이를 정리합니다.
+category: 리액트 핵심 개념
+order: 2
+---
+
+import Quiz from '@components/react/Quiz.tsx';
+
+리액트 컴포넌트는 클래스로도, 함수로도 만들 수 있습니다. 두 방식 모두 props를 받아 UI를 반환하지만, 상태와 생명주기를 다루는 방법이 다릅니다. **리액트 16.8에서 훅이 도입된 이후로는 함수형 컴포넌트가 표준**입니다.
+
+## 클래스 컴포넌트
+
+`React.Component`를 상속하고 `render()`에서 UI를 반환합니다. 상태는 `this.state`, 갱신은 `this.setState`, 사이클은 `componentDidMount` 같은 **생명주기 메서드**로 다룹니다.
+
+```jsx
+class Counter extends React.Component {
+  state = { count: 0 };
+
+  componentDidMount() {
+    console.log('마운트됨');
+  }
+
+  render() {
+    return <button onClick={() => this.setState({ count: this.state.count + 1 })}>{this.state.count}</button>;
+  }
+}
+```
+
+이벤트 핸들러에서 `this`가 어긋나기 쉬워, 바인딩하거나 화살표 함수를 써야 하는 번거로움이 있습니다.
+
+## 함수형 컴포넌트
+
+평범한 함수로 작성하고, 상태와 효과는 [훅](/docs/frontend-tech-interview/26-custom-hooks)으로 다룹니다. `this`가 없어 더 간결합니다.
+
+```jsx
+function Counter() {
+  const [count, setCount] = useState(0);
+
+  useEffect(() => {
+    console.log('마운트됨');
+  }, []);
+
+  return <button onClick={() => setCount((c) => c + 1)}>{count}</button>;
+}
+```
+
+## 핵심 차이 정리
+
+| 구분        | 클래스 컴포넌트                | 함수형 컴포넌트                                           |
+| ----------- | ------------------------------ | --------------------------------------------------------- |
+| 상태        | `this.state` / `this.setState` | `useState`                                                |
+| 생명주기    | `componentDidMount` 등 메서드  | [`useEffect`](/docs/frontend-tech-interview/23-useeffect) |
+| `this`      | 바인딩 필요                    | 없음                                                      |
+| 로직 재사용 | HOC·render props로 복잡        | 커스텀 훅으로 간단                                        |
+
+생명주기 메서드는 "마운트/업데이트/언마운트" 시점별로 나뉘지만, `useEffect`는 **동기화해야 할 값(의존성)** 중심으로 사고한다는 점이 사고방식의 큰 차이입니다.
+
+<Quiz
+  client:visible
+  question="클래스 컴포넌트와 함수형 컴포넌트에 대한 설명으로 옳은 것은?"
+  options={[
+    {
+      text: '함수형 컴포넌트는 useState·useEffect 같은 훅으로 상태와 생명주기를 다룬다.',
+      correct: true,
+      explanation:
+        '리액트 16.8의 훅 도입 이후 함수형 컴포넌트가 상태와 효과를 다룰 수 있게 되었고, 현재 권장 방식입니다.',
+    },
+    {
+      text: '함수형 컴포넌트는 상태를 가질 수 없어 항상 클래스를 써야 한다.',
+      explanation: 'useState 훅으로 상태를 가질 수 있습니다. 훅 도입 이전의 옛 이야기입니다.',
+    },
+    {
+      text: '함수형 컴포넌트에서도 this 바인딩 문제를 신경 써야 한다.',
+      explanation: '함수형 컴포넌트에는 this가 없어 바인딩 문제 자체가 없습니다.',
+    },
+  ]}
+/>

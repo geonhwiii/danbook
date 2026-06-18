@@ -1,0 +1,94 @@
+---
+title: 자바스크립트는 어떤 데이터 타입을 가지고 있나요?
+description: 7가지 원시 타입과 객체 타입, 원시값과 참조값의 차이, typeof null 같은 함정을 정리합니다.
+category: 자바스크립트 핵심 개념
+order: 2
+---
+
+import Quiz from '@components/react/Quiz.tsx';
+
+자바스크립트의 값은 크게 **원시 타입(primitive)** 과 **객체 타입(object)** 으로 나뉩니다. 원시 타입은 7가지, 그 외 모든 것(배열·함수·날짜 등 포함)은 객체입니다.
+
+## 7가지 원시 타입
+
+| 타입        | 예시           | 설명                                        |
+| ----------- | -------------- | ------------------------------------------- |
+| `string`    | `'hello'`      | 문자열                                      |
+| `number`    | `42`, `3.14`   | 정수·실수를 모두 표현하는 64비트 부동소수점 |
+| `bigint`    | `42n`          | `number`로 표현할 수 없는 큰 정수           |
+| `boolean`   | `true`         | 참/거짓                                     |
+| `undefined` | `undefined`    | 값이 할당되지 않음                          |
+| `symbol`    | `Symbol('id')` | 유일한 식별자                               |
+| `null`      | `null`         | 의도적으로 "값이 없음"을 나타냄             |
+
+이 외의 모든 값은 **객체(`object`)** 입니다. MDN의 표현대로 "객체는 자바스크립트에서 유일하게 변경 가능한(mutable) 값"이며, 원시 타입의 값은 모두 **불변(immutable)** 입니다.
+
+## 원시값 vs 참조값
+
+원시값은 **값 자체로** 복사되고, 객체는 **참조(메모리 주소)** 로 다뤄집니다. 이 차이가 복사·비교·함수 인자 전달에서 동작 차이를 만듭니다.
+
+```js
+let a = 1;
+let b = a; // 값 복사
+b = 2;
+console.log(a); // 1 — a는 영향 없음
+
+let obj1 = { x: 1 };
+let obj2 = obj1; // 참조 복사 (같은 객체를 가리킴)
+obj2.x = 2;
+console.log(obj1.x); // 2 — 같은 객체이므로 함께 바뀜
+```
+
+## 자주 나오는 함정: typeof
+
+`typeof`로 타입을 확인할 수 있지만 두 가지를 꼭 기억해야 합니다.
+
+```js
+typeof null; // "object"  ← 언어 초기의 버그로 남은 동작
+typeof function () {}; // "function" ← 함수는 객체지만 별도로 "function" 반환
+typeof undefined; // "undefined"
+typeof 42n; // "bigint"
+```
+
+`typeof null`이 `"object"`인 것은 역사적 버그이며, `null`인지 확인하려면 `value === null`을 써야 합니다.
+
+<Quiz
+  client:visible
+  question="다음 중 자바스크립트의 원시 타입(primitive)이 아닌 것은?"
+  options={[
+    {
+      text: 'symbol',
+      explanation: 'symbol은 ES2015에서 추가된 원시 타입입니다.',
+    },
+    {
+      text: 'bigint',
+      explanation: 'bigint는 큰 정수를 위한 원시 타입입니다.',
+    },
+    {
+      text: 'array',
+      correct: true,
+      explanation:
+        '배열은 원시 타입이 아니라 객체(object)입니다. 원시 타입은 string, number, bigint, boolean, undefined, symbol, null 7가지뿐입니다.',
+    },
+  ]}
+/>
+
+<Quiz
+  client:visible
+  question="typeof 연산자의 결과로 옳은 것은?"
+  options={[
+    {
+      text: 'typeof null === "null"',
+      explanation: 'typeof null은 "object"를 반환합니다. null 판별은 === null로 해야 합니다.',
+    },
+    {
+      text: 'typeof function(){} === "function"',
+      correct: true,
+      explanation: '함수는 객체의 일종이지만 typeof는 "function"을 반환합니다.',
+    },
+    {
+      text: 'typeof undefined === "object"',
+      explanation: 'typeof undefined는 "undefined"입니다. "object"를 반환하는 것은 null입니다.',
+    },
+  ]}
+/>

@@ -1,0 +1,79 @@
+---
+title: 일반 함수와 화살표 함수의 가장 큰 차이점은 무엇인가요?
+description: this 바인딩, arguments, 생성자 사용 가능 여부 등 일반 함수와 화살표 함수의 핵심 차이를 정리합니다.
+category: 자바스크립트 핵심 개념
+order: 16
+---
+
+import Quiz from '@components/react/Quiz.tsx';
+
+화살표 함수(`=>`)는 단순히 짧게 쓰는 문법이 아니라, 일반 함수와 **동작 자체가 다른** 부분이 있습니다. 가장 큰 차이는 `this`를 다루는 방식입니다.
+
+## 가장 큰 차이: this 바인딩
+
+일반 함수의 [`this`](/docs/frontend-tech-interview/08-this-keyword)는 **호출 방식**에 따라 동적으로 정해집니다. 반면 화살표 함수는 자신만의 `this`가 없고, **정의된 위치의 바깥 `this`** 를 그대로 씁니다(렉시컬 this). 이 차이 때문에 콜백에서 바깥 `this`를 유지할 때 화살표 함수가 유용합니다.
+
+```js
+const obj = {
+  name: '단북',
+  // 일반 함수: 콜백 안 this가 obj가 아니게 됨
+  wrong() {
+    setTimeout(function () {
+      console.log(this.name); // undefined (this가 obj 아님)
+    }, 0);
+  },
+  // 화살표 함수: 바깥(wrong)의 this를 유지
+  right() {
+    setTimeout(() => {
+      console.log(this.name); // '단북'
+    }, 0);
+  },
+};
+```
+
+## 그 외 차이
+
+| 항목                 | 일반 함수                   | 화살표 함수                         |
+| -------------------- | --------------------------- | ----------------------------------- |
+| `this`               | 호출 방식에 따라 동적       | 바깥 스코프의 this (렉시컬)         |
+| `arguments` 객체     | 있음                        | 없음 (rest 파라미터 `...args` 사용) |
+| `new` 생성자         | 가능                        | 불가능 (TypeError)                  |
+| `prototype` 프로퍼티 | 있음                        | 없음                                |
+| 호이스팅             | 함수 선언문은 전체 호이스팅 | 변수 규칙(표현식)을 따름            |
+
+```js
+const arrow = () => {};
+new arrow(); // TypeError: arrow is not a constructor
+
+function normal() {
+  console.log(arguments); // 인자 목록 객체
+}
+const arrowArgs = (...args) => console.log(args); // arguments 대신 rest
+```
+
+## 언제 무엇을 쓰나
+
+- **화살표 함수** — 콜백, 배열 메서드(`map`/`filter`), 바깥 `this`를 유지해야 할 때.
+- **일반 함수** — 객체의 메서드(자신의 `this`가 필요할 때), 생성자, `arguments`가 필요할 때.
+
+특히 객체 메서드를 화살표 함수로 정의하면 `this`가 객체가 아니라 바깥(보통 전역)을 가리키므로 주의해야 합니다.
+
+<Quiz
+  client:visible
+  question="화살표 함수에 대한 설명으로 옳지 않은 것은?"
+  options={[
+    {
+      text: '자신만의 this를 갖지 않고 바깥 스코프의 this를 사용한다.',
+      explanation: '옳은 설명입니다. 화살표 함수는 렉시컬 this를 사용합니다.',
+    },
+    {
+      text: 'new 키워드로 인스턴스를 생성하는 생성자로 사용할 수 있다.',
+      correct: true,
+      explanation: '화살표 함수는 생성자로 쓸 수 없습니다. new로 호출하면 TypeError가 발생합니다.',
+    },
+    {
+      text: '자체 arguments 객체가 없어 rest 파라미터(...args)를 사용해야 한다.',
+      explanation: '옳은 설명입니다. 화살표 함수에는 arguments가 없습니다.',
+    },
+  ]}
+/>

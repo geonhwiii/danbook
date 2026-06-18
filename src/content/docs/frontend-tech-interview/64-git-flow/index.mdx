@@ -1,0 +1,59 @@
+---
+title: 깃플로는 무엇이며, 그 외 버전 관리 전략은 무엇이 있나요?
+description: Git Flow의 브랜치 구조와 GitHub Flow·Trunk-Based 등 대표적인 브랜치 전략을 비교해 정리합니다.
+category: 실무 프로젝트 지식
+order: 9
+---
+
+import Quiz from '@components/react/Quiz.tsx';
+
+**브랜치 전략(branching strategy)** 은 팀이 Git 브랜치를 어떻게 나누고 합칠지에 대한 약속입니다. **Git Flow** 는 그중 정형화된 대표 전략입니다.
+
+## Git Flow
+
+Vincent Driessen이 제안한 모델로, **역할이 정해진 여러 브랜치**를 사용합니다.
+
+- **`main`(master)** — 배포된 안정 버전. 태그로 릴리스 표시.
+- **`develop`** — 다음 릴리스를 위한 통합 브랜치.
+- **`feature/*`** — 기능 개발. `develop`에서 분기 → `develop`으로 병합.
+- **`release/*`** — 출시 준비(버그 수정·버전). `develop`에서 분기 → `main`·`develop`으로 병합.
+- **`hotfix/*`** — 운영 긴급 수정. `main`에서 분기 → `main`·`develop`으로 병합.
+
+체계적이고 릴리스 주기가 뚜렷한 제품(버전·릴리스 관리가 중요한 경우)에 적합하지만, 브랜치가 많아 **복잡하고 무겁다**는 단점이 있어 CD(지속적 배포) 환경에는 과한 경우가 많습니다.
+
+## 그 외 전략
+
+- **GitHub Flow** — `main` 하나를 중심으로, 작업은 짧은 수명의 브랜치에서 하고 **PR로 리뷰 후 `main`에 병합 → 바로 배포**. 단순하고 지속 배포에 적합.
+- **GitLab Flow** — GitHub Flow에 `production`·환경(staging 등) 브랜치를 더해, 배포 환경과 브랜치를 연계.
+- **Trunk-Based Development** — 모두가 하나의 트렁크(`main`)에 **작은 단위로 자주 병합**. 장수 브랜치를 피하고, 미완성 기능은 **피처 플래그**로 숨김. CI/CD·대규모 팀에서 선호.
+
+| 전략        | 브랜치 수 | 배포 주기     | 적합한 경우           |
+| ----------- | --------- | ------------- | --------------------- |
+| Git Flow    | 많음      | 정해진 릴리스 | 버전·릴리스 관리 중요 |
+| GitHub Flow | 적음      | 수시(지속)    | 웹 서비스, 빠른 배포  |
+| Trunk-Based | 최소      | 매우 잦음(CD) | CI/CD, 대규모·고빈도  |
+
+> 정답은 없으며, 팀 규모·릴리스 주기·CI/CD 성숙도에 맞춰 선택합니다.
+
+<Quiz
+  client:visible
+  question="브랜치 전략에 대한 설명으로 옳은 것은?"
+  options={[
+    {
+      text: 'Git Flow는 main·develop·feature·release·hotfix 등 역할별 브랜치를 두는 체계적 모델이고, GitHub Flow는 main 중심의 단순한 모델이다.',
+      correct: true,
+      explanation:
+        'Git Flow는 다수의 역할 브랜치로 체계적이고, GitHub Flow는 main 중심으로 단순해 지속 배포에 적합합니다.',
+    },
+    {
+      text: 'Trunk-Based Development는 장수 기능 브랜치를 오래 유지하는 것을 권장한다.',
+      explanation:
+        '반대입니다. 트렁크 기반은 작은 단위로 자주 병합하고 장수 브랜치를 피하며, 미완성 기능은 피처 플래그로 가립니다.',
+    },
+    {
+      text: 'Git Flow는 브랜치가 적고 단순해 지속적 배포(CD)에 가장 가벼운 전략이다.',
+      explanation:
+        'Git Flow는 브랜치가 많아 무거운 편이라 CD에는 과할 수 있습니다. 가벼운 쪽은 GitHub Flow·Trunk-Based입니다.',
+    },
+  ]}
+/>

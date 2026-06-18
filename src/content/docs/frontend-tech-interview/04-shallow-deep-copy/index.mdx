@@ -1,0 +1,66 @@
+---
+title: 얕은 복사와 깊은 복사란 무엇인가요?
+description: 한 단계만 복사하는 얕은 복사와 중첩 구조까지 복사하는 깊은 복사의 차이, spread·structuredClone의 동작을 정리합니다.
+category: 자바스크립트 핵심 개념
+order: 4
+---
+
+import Quiz from '@components/react/Quiz.tsx';
+
+객체는 참조 타입이라 단순히 `=`로 대입하면 같은 객체를 공유합니다([객체](/docs/frontend-tech-interview/03-objects) 참고). 그래서 "원본과 독립된 사본"을 만들려면 복사를 해야 하는데, 어디까지 복사하느냐에 따라 **얕은 복사**와 **깊은 복사**로 나뉩니다.
+
+## 얕은 복사 (shallow copy)
+
+객체의 **최상위 프로퍼티만** 복사합니다. 값이 원시값이면 복사되지만, 값이 객체(중첩 객체)면 그 참조만 복사되어 원본과 사본이 같은 중첩 객체를 공유합니다.
+
+```js
+const original = { name: '단북', info: { age: 3 } };
+
+const copy = { ...original }; // spread — 얕은 복사
+// const copy = Object.assign({}, original); // 동일하게 얕은 복사
+
+copy.name = '복제';
+console.log(original.name); // '단북' — 최상위는 독립적
+
+copy.info.age = 99;
+console.log(original.info.age); // 99 — 중첩 객체는 공유됨!
+```
+
+`{ ...obj }`, `Object.assign`, `Array.prototype.slice`, `[...arr]`는 모두 얕은 복사입니다.
+
+## 깊은 복사 (deep copy)
+
+중첩된 모든 단계까지 새로 복사해, 원본과 완전히 분리된 사본을 만듭니다. 표준 API인 `structuredClone`을 쓰면 됩니다.
+
+```js
+const original = { name: '단북', info: { age: 3 } };
+const copy = structuredClone(original);
+
+copy.info.age = 99;
+console.log(original.info.age); // 3 — 중첩 객체도 독립적
+```
+
+`structuredClone`은 깊은 복사를 수행하고 순환 참조도 처리합니다. 다만 **함수나 DOM 노드처럼 직렬화할 수 없는 값**이 포함되면 `DataCloneError`가 발생하며, 프로토타입 체인이나 getter/setter는 복제되지 않습니다(평범한 데이터로 복사됨).
+
+`JSON.parse(JSON.stringify(obj))`도 깊은 복사에 흔히 쓰이지만, `undefined`·함수·`Symbol`은 사라지고 `Date`는 문자열로 바뀌며 순환 참조에서 에러가 나는 한계가 있어 `structuredClone`이 더 안전합니다.
+
+<Quiz
+  client:visible
+  question="const a = { list: [1, 2] }; const b = { ...a }; b.list.push(3); 이후 a.list는?"
+  options={[
+    {
+      text: '[1, 2]',
+      explanation: 'spread는 얕은 복사라 중첩 배열 list는 a와 b가 공유합니다. 따라서 push가 a.list에도 반영됩니다.',
+    },
+    {
+      text: '[1, 2, 3]',
+      correct: true,
+      explanation:
+        '{ ...a }는 얕은 복사이므로 a.list와 b.list는 같은 배열을 가리킵니다. b.list.push(3)이 a.list에도 영향을 줘 [1, 2, 3]이 됩니다.',
+    },
+    {
+      text: 'TypeError가 발생한다',
+      explanation: '에러는 발생하지 않습니다. 얕은 복사로 공유된 배열이 함께 변경됩니다.',
+    },
+  ]}
+/>

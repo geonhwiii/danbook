@@ -1,0 +1,64 @@
+---
+title: 프런트엔드에서 사용하는 TDD 기법을 설명할 수 있나요?
+description: 테스트를 먼저 작성하는 TDD의 Red-Green-Refactor 사이클과 프런트엔드에서의 적용 방법을 정리합니다.
+category: 실무 프로젝트 지식
+order: 8
+---
+
+import Quiz from '@components/react/Quiz.tsx';
+
+**TDD(Test-Driven Development, 테스트 주도 개발)** 는 **실패하는 테스트를 먼저 작성**한 뒤, 그 테스트를 통과시키는 코드를 작성하고, 마지막에 리팩터링하는 개발 방식입니다.
+
+## Red-Green-Refactor 사이클
+
+1. **Red** — 아직 구현되지 않은 동작에 대한 **실패하는 테스트**를 먼저 작성.
+2. **Green** — 테스트를 통과시키는 **최소한의 코드**를 작성.
+3. **Refactor** — 테스트가 통과하는 상태를 유지하며 코드를 **개선**.
+
+이 작은 사이클을 반복하며 요구사항을 코드로 옮깁니다. "테스트가 명세 역할"을 하므로 설계가 명확해지고 회귀를 방지합니다.
+
+## 프런트엔드에서의 적용
+
+- **단위 테스트(Unit)** — 순수 함수·유틸·커스텀 훅·상태 로직. Vitest/Jest.
+- **컴포넌트 테스트** — 렌더링 결과와 상호작용을 검증. **React Testing Library** 로 "사용자가 보는 방식"(역할·텍스트)으로 쿼리하고, `userEvent`로 상호작용을 시뮬레이션.
+- **E2E 테스트** — 실제 브라우저에서 사용자 시나리오 검증. Playwright/Cypress.
+
+```tsx
+// 예: 카운터 컴포넌트 (React Testing Library + Vitest)
+import { render, screen } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
+import { Counter } from './Counter';
+
+test('버튼을 누르면 카운트가 1 증가한다', async () => {
+  render(<Counter />);
+  await userEvent.click(screen.getByRole('button', { name: '증가' }));
+  expect(screen.getByText('count: 1')).toBeInTheDocument();
+});
+```
+
+## 프런트엔드 TDD의 포인트
+
+- **구현 세부가 아니라 동작을 테스트** — 내부 상태가 아니라 사용자에게 보이는 결과를 검증해야 리팩터링에 강함.
+- **테스트하기 쉬운 설계 유도** — 로직과 UI 분리, 의존성 주입 등 좋은 설계로 이어짐.
+- **회귀 방지·신뢰** — 변경 시 테스트가 안전망 역할.
+- UI는 시각·비동기 요소가 많아, 모든 것을 TDD로 하기보다 **로직 중심으로 TDD를 적용**하고 E2E로 보완하는 절충이 흔합니다.
+
+<Quiz
+  client:visible
+  question="TDD의 기본 사이클로 옳은 것은?"
+  options={[
+    {
+      text: '실패하는 테스트 작성(Red) → 통과시키는 최소 코드(Green) → 리팩터링(Refactor)',
+      correct: true,
+      explanation: 'TDD는 Red-Green-Refactor 순서로, 테스트를 먼저 작성하는 것이 핵심입니다.',
+    },
+    {
+      text: '구현 코드를 모두 완성한 뒤 마지막에 한 번에 테스트를 작성한다.',
+      explanation: '그것은 테스트 후행 방식입니다. TDD는 테스트를 먼저 작성합니다.',
+    },
+    {
+      text: '테스트 없이 리팩터링부터 시작해 코드를 정리한 뒤 기능을 만든다.',
+      explanation: 'TDD는 실패하는 테스트(Red)에서 시작합니다. 리팩터링은 테스트 통과 이후 단계입니다.',
+    },
+  ]}
+/>

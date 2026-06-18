@@ -1,0 +1,89 @@
+---
+title: 리액트 컴포넌트의 오류 처리를 어떻게 구현하나요?
+description: 렌더링 중 에러를 잡는 에러 바운더리(Error Boundary)의 동작과, 이벤트 핸들러·비동기 코드를 try/catch로 다뤄야 하는 이유를 정리합니다.
+category: 리액트 핵심 개념
+order: 8
+---
+
+import Quiz from '@components/react/Quiz.tsx';
+
+컴포넌트 렌더링 중에 에러가 나면, 기본적으로 리액트는 전체 컴포넌트 트리를 언마운트해 화면이 깨집니다. 이를 막고 **대체 UI(fallback)** 를 보여 주는 장치가 **에러 바운더리(Error Boundary)** 입니다.
+
+## 에러 바운더리
+
+에러 바운더리는 두 생명주기 메서드 중 하나 이상을 구현한 **클래스 컴포넌트**입니다(2026년 기준 훅 버전은 없어, 보통 라이브러리를 씁니다).
+
+- **`static getDerivedStateFromError`** — 에러 발생 시 상태를 갱신해 폴백 UI를 렌더링합니다.
+- **`componentDidCatch`** — 에러 정보를 로깅합니다.
+
+```jsx
+class ErrorBoundary extends React.Component {
+  state = { hasError: false };
+
+  static getDerivedStateFromError() {
+    return { hasError: true };
+  }
+
+  componentDidCatch(error, info) {
+    logErrorToService(error, info);
+  }
+
+  render() {
+    if (this.state.hasError) return <h1>문제가 발생했어요.</h1>;
+    return this.props.children;
+  }
+}
+```
+
+자신이 감싼 **하위 트리의 렌더링 에러**만 잡습니다. 그래서 앱 전체용, 위젯별용 등 여러 단계에 둘 수 있습니다.
+
+```jsx
+<ErrorBoundary>
+  <Profile />
+</ErrorBoundary>
+```
+
+## 에러 바운더리가 못 잡는 것
+
+에러 바운더리는 **렌더링·생명주기·하위 트리 생성자**에서 나는 에러만 잡습니다. 다음은 잡지 못하므로 직접 `try/catch`로 처리해야 합니다.
+
+- **이벤트 핸들러** (onClick 등) — 렌더링 흐름 밖이므로 try/catch 사용
+- **[비동기 코드](/docs/frontend-tech-interview/11-async-callbacks-promises)** (setTimeout, Promise) — try/catch 또는 .catch
+- **서버 사이드 렌더링**
+- **에러 바운더리 자신**에서 난 에러
+
+```jsx
+function Button() {
+  const onClick = async () => {
+    try {
+      await doSomething();
+    } catch (e) {
+      showToast('실패했어요');
+    }
+  };
+  return <button onClick={onClick}>실행</button>;
+}
+```
+
+실무에서는 직접 클래스를 만들기보다 **`react-error-boundary`** 라이브러리로 폴백과 재시도를 간편하게 구성하는 경우가 많습니다.
+
+<Quiz
+  client:visible
+  question="에러 바운더리(Error Boundary)에 대한 설명으로 옳은 것은?"
+  options={[
+    {
+      text: '하위 컴포넌트의 렌더링 중 에러는 잡지만, 이벤트 핸들러나 비동기 코드의 에러는 잡지 못한다.',
+      correct: true,
+      explanation:
+        '에러 바운더리는 렌더링·생명주기 단계의 에러만 잡습니다. 이벤트 핸들러·비동기 에러는 try/catch로 직접 처리해야 합니다.',
+    },
+    {
+      text: 'useState와 useEffect로 만드는 함수형 훅이다.',
+      explanation: '에러 바운더리는 getDerivedStateFromError / componentDidCatch를 구현한 클래스 컴포넌트로 만듭니다.',
+    },
+    {
+      text: '앱에서 발생하는 모든 종류의 에러를 자동으로 잡아 준다.',
+      explanation: '이벤트 핸들러, 비동기, SSR, 바운더리 자신의 에러는 잡지 못합니다.',
+    },
+  ]}
+/>

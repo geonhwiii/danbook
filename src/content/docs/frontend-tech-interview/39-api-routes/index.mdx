@@ -1,0 +1,60 @@
+---
+title: Next.js에서 API 라우트를 사용하는 목적은 무엇인가요?
+description: 프론트엔드와 같은 프로젝트에서 백엔드 엔드포인트를 만드는 API 라우트(Route Handler)의 용도와 활용을 정리합니다.
+category: Next.js 핵심 개념
+order: 9
+---
+
+import Quiz from '@components/react/Quiz.tsx';
+
+Next.js는 프론트엔드와 **같은 프로젝트 안에서 서버 API 엔드포인트**를 만들 수 있습니다. 앱 라우터에서는 `route.ts`(라우트 핸들러), 페이지 라우터에서는 `pages/api/`를 씁니다.
+
+## 어떻게 만드나
+
+`app/api/.../route.ts`에서 HTTP 메서드 이름의 함수를 내보냅니다.
+
+```ts
+// app/api/users/route.ts
+export async function GET() {
+  const users = await db.user.findMany();
+  return Response.json(users);
+}
+
+export async function POST(req: Request) {
+  const body = await req.json();
+  const user = await db.user.create({ data: body });
+  return Response.json(user, { status: 201 });
+}
+```
+
+## 왜 쓰나요? (목적)
+
+- **민감 정보 보호** — DB 접속 정보, [API 키](/docs/frontend-tech-interview/31-why-nextjs) 등을 서버에서만 다뤄 브라우저에 노출하지 않습니다.
+- **프록시·중계** — 외부 API를 대신 호출해 키를 숨기고 [CORS](/docs/frontend-tech-interview/29-csr) 문제를 우회합니다.
+- **풀스택 단일 저장소** — 프론트와 백엔드를 한 프로젝트에서 관리, 배포도 함께.
+- **웹훅·폼 처리·인증** 등 서버 로직 처리.
+
+## 주의
+
+- 라우트 핸들러는 **서버에서만** 실행되므로 클라이언트 번들에 코드가 포함되지 않습니다.
+- 앱 라우터에서는 단순 데이터 조회라면 라우트를 거치지 않고 **서버 컴포넌트에서 직접 패칭**하거나 **서버 액션**을 쓰는 편이 더 간단할 때도 많습니다. API 라우트는 외부에 공개할 HTTP 엔드포인트가 필요할 때 특히 유용합니다.
+
+<Quiz
+  client:visible
+  question="Next.js의 API 라우트(라우트 핸들러)를 사용하는 주된 목적으로 옳은 것은?"
+  options={[
+    {
+      text: 'API 키·DB 접속 정보 같은 민감 정보를 서버에서만 다루며, 같은 프로젝트에 백엔드 엔드포인트를 둘 수 있다.',
+      correct: true,
+      explanation: '서버에서만 실행되므로 민감 정보를 숨기고, 외부 API 프록시나 풀스택 구성에 활용합니다.',
+    },
+    {
+      text: 'API 라우트의 코드는 클라이언트 번들에 포함되어 브라우저에서도 실행된다.',
+      explanation: '라우트 핸들러는 서버에서만 실행되며 클라이언트 번들에 포함되지 않습니다.',
+    },
+    {
+      text: 'API 라우트를 써야만 페이지에서 데이터를 가져올 수 있다.',
+      explanation: '앱 라우터에서는 서버 컴포넌트에서 직접 패칭하거나 서버 액션을 쓸 수도 있습니다. 필수는 아닙니다.',
+    },
+  ]}
+/>

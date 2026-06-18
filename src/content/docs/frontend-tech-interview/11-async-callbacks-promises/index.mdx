@@ -1,0 +1,92 @@
+---
+title: 콜백, 프로미스, async/await의 차이점과 장단점은 무엇인가요?
+description: 비동기 처리 3가지 방식의 발전 과정 — 콜백 지옥, 프로미스 체이닝, async/await의 가독성을 정리합니다.
+category: 자바스크립트 핵심 개념
+order: 11
+---
+
+import Quiz from '@components/react/Quiz.tsx';
+
+자바스크립트는 단일 스레드라, 네트워크 요청·타이머처럼 시간이 걸리는 작업을 **비동기**로 처리합니다. 비동기 결과를 다루는 방식은 콜백 → 프로미스 → async/await 순으로 발전해 왔습니다.
+
+## 콜백 (callback)
+
+작업이 끝나면 호출할 함수를 인자로 넘기는 방식입니다. 단순하지만, 비동기 작업을 순서대로 이어 붙이면 중첩이 깊어져 **콜백 지옥(callback hell)** 이 됩니다. 가독성이 나쁘고 에러 처리도 분산됩니다.
+
+```js
+getUser(id, (user) => {
+  getPosts(user, (posts) => {
+    getComments(posts[0], (comments) => {
+      // 중첩이 계속 깊어짐…
+    });
+  });
+});
+```
+
+## 프로미스 (Promise)
+
+비동기 작업의 **미래 결과를 나타내는 객체**입니다. `pending`(대기) → `fulfilled`(성공) 또는 `rejected`(실패) 상태를 가지며, `.then()`으로 체이닝해 중첩을 평탄하게 만들고 `.catch()`로 에러를 한곳에서 처리합니다.
+
+```js
+getUser(id)
+  .then((user) => getPosts(user))
+  .then((posts) => getComments(posts[0]))
+  .catch((err) => console.error(err)); // 어디서 실패하든 여기서 처리
+```
+
+여러 작업을 동시에 다루는 `Promise.all`(모두 성공해야 함), `Promise.race`, `Promise.allSettled` 같은 정적 메서드도 강점입니다.
+
+## async/await
+
+프로미스를 **동기 코드처럼** 쓰게 해주는 문법입니다. `await`는 프로미스가 처리될 때까지 기다린 값을 반환하고, 에러는 `try/catch`로 잡습니다. 가독성이 가장 좋아 현재 표준적인 방식입니다.
+
+```js
+async function load(id) {
+  try {
+    const user = await getUser(id);
+    const posts = await getPosts(user);
+    return await getComments(posts[0]);
+  } catch (err) {
+    console.error(err);
+  }
+}
+```
+
+`async` 함수는 항상 프로미스를 반환합니다. 주의할 점은, 독립적인 작업을 `await`로 순차 실행하면 느려질 수 있다는 것입니다. 서로 의존하지 않는 작업은 `Promise.all`로 병렬 처리하는 게 좋습니다.
+
+```js
+// 느림: 순차 (a 끝나고 b 시작)
+const a = await fetchA();
+const b = await fetchB();
+
+// 빠름: 병렬
+const [a2, b2] = await Promise.all([fetchA(), fetchB()]);
+```
+
+## 정리
+
+| 방식        | 장점                                        | 단점                            |
+| ----------- | ------------------------------------------- | ------------------------------- |
+| 콜백        | 단순, 별도 객체 불필요                      | 콜백 지옥, 에러 처리 분산       |
+| 프로미스    | 체이닝으로 평탄화, 에러 일원화, 병렬 메서드 | `.then` 체인이 길면 여전히 복잡 |
+| async/await | 동기 코드처럼 읽힘, try/catch               | 의도치 않은 순차 실행 주의      |
+
+<Quiz
+  client:visible
+  question="서로 의존하지 않는 두 비동기 작업을 가장 효율적으로 처리하는 방법은?"
+  options={[
+    {
+      text: 'await fetchA(); 다음 줄에서 await fetchB(); 로 순서대로 실행한다.',
+      explanation: '이렇게 하면 A가 끝난 뒤 B가 시작되어 총 시간이 둘의 합이 됩니다. 의존성이 없다면 비효율적입니다.',
+    },
+    {
+      text: 'await Promise.all([fetchA(), fetchB()]) 로 병렬 실행한다.',
+      correct: true,
+      explanation: '서로 의존하지 않으면 Promise.all로 동시에 시작해 더 오래 걸리는 작업 시간만큼만 기다리면 됩니다.',
+    },
+    {
+      text: '두 작업을 콜백 중첩으로 작성한다.',
+      explanation: '콜백 중첩은 가독성도 나쁘고 병렬 처리도 자동으로 되지 않습니다.',
+    },
+  ]}
+/>

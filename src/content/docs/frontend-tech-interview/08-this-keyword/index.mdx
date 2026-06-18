@@ -1,0 +1,97 @@
+---
+title: this 키워드란 무엇인가요?
+description: 호출 방식에 따라 달라지는 this의 4가지 바인딩 규칙과 화살표 함수의 렉시컬 this를 정리합니다.
+category: 자바스크립트 핵심 개념
+order: 8
+---
+
+import Quiz from '@components/react/Quiz.tsx';
+
+`this`는 함수가 **어떻게 호출되었는지**에 따라 가리키는 대상이 달라지는 키워드입니다. 정의된 위치가 아니라 **호출 시점의 방식**으로 결정된다는 점이 핵심입니다(화살표 함수는 예외).
+
+## 4가지 기본 바인딩 규칙
+
+```js
+// 1. 일반 함수 호출 → 전역 객체(strict 모드에서는 undefined)
+function f() {
+  console.log(this);
+}
+f(); // window / undefined
+
+// 2. 메서드 호출 → 점(.) 앞의 객체
+const obj = {
+  name: '단북',
+  greet() {
+    return this.name;
+  },
+};
+obj.greet(); // '단북' — this는 obj
+
+// 3. new로 생성자 호출 → 새로 만들어진 인스턴스
+function User(name) {
+  this.name = name;
+}
+const u = new User('단북'); // this는 새 객체
+
+// 4. call/apply/bind로 명시적 바인딩
+function greet() {
+  return this.name;
+}
+greet.call({ name: '명시적' }); // '명시적'
+```
+
+규칙의 우선순위는 대략 `new` > `call`/`apply`/`bind` > 메서드 호출 > 일반 호출 순입니다.
+
+## 흔한 함정: this를 잃어버리는 경우
+
+메서드를 변수에 떼어내 호출하거나 콜백으로 넘기면, "점 앞의 객체"가 사라져 `this`가 바뀝니다.
+
+```js
+const obj = {
+  name: '단북',
+  greet() {
+    return this.name;
+  },
+};
+const fn = obj.greet;
+fn(); // undefined — 일반 호출이 되어 this가 obj가 아님
+```
+
+## 화살표 함수의 렉시컬 this
+
+화살표 함수는 자신만의 `this`를 갖지 않고, **정의된 위치의 바깥 `this`** 를 그대로 사용합니다. 그래서 콜백 안에서 바깥 `this`를 유지하고 싶을 때 유용합니다.
+
+```js
+const obj = {
+  name: '단북',
+  items: [1, 2],
+  print() {
+    this.items.forEach((n) => {
+      console.log(this.name, n); // 화살표라 this는 print의 this(obj) 유지
+    });
+  },
+};
+obj.print(); // '단북' 1 / '단북' 2
+```
+
+<Quiz
+  client:visible
+  question="const o = { v: 1, get() { return this.v; } }; const g = o.get; g(); 의 결과로 가장 알맞은 것은?"
+  options={[
+    {
+      text: '1이 반환된다',
+      explanation: 'g()는 o와 분리된 일반 호출이라 this가 o가 아닙니다. this.v를 찾지 못해 1이 나오지 않습니다.',
+    },
+    {
+      text: 'undefined가 반환되거나 (strict 모드면) 에러가 발생한다',
+      correct: true,
+      explanation:
+        '메서드를 변수에 떼어 g()로 호출하면 일반 함수 호출이 되어 this가 o가 아닙니다. 비엄격 모드면 this는 전역 객체라 this.v가 undefined, strict 모드면 this가 undefined라 TypeError가 납니다.',
+    },
+    {
+      text: '항상 TypeError가 발생한다',
+      explanation:
+        'strict 모드에서는 TypeError지만, 비엄격 모드에서는 전역 객체의 v(undefined)를 반환합니다. "항상"은 아닙니다.',
+    },
+  ]}
+/>

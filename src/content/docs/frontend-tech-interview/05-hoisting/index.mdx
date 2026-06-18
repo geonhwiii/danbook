@@ -1,0 +1,72 @@
+---
+title: 호이스팅이란 무엇인가요?
+description: 선언이 스코프 최상단으로 끌어올려지는 호이스팅과 var·let·const·함수 선언의 차이, TDZ를 정리합니다.
+category: 자바스크립트 핵심 개념
+order: 5
+---
+
+import Quiz from '@components/react/Quiz.tsx';
+
+호이스팅은 변수·함수의 **선언이 자신이 속한 스코프의 최상단으로 끌어올려진 것처럼 동작하는** 현상입니다. 실제로 코드가 이동하는 것은 아니고, 엔진이 실행 전에 스코프 내 선언을 먼저 등록하기 때문에 나타나는 동작입니다.
+
+## var와 함수 선언
+
+`var`로 선언한 변수는 선언이 끌어올려지지만, **할당은 제자리에** 남습니다. 그래서 선언 전에 접근하면 에러 없이 `undefined`가 나옵니다.
+
+```js
+console.log(x); // undefined (에러 아님)
+var x = 1;
+console.log(x); // 1
+```
+
+**함수 선언문**은 함수 전체가 끌어올려져서 선언 전에 호출할 수 있습니다.
+
+```js
+greet(); // '안녕' — 정상 동작
+function greet() {
+  return console.log('안녕');
+}
+```
+
+반면 **함수 표현식**(`const fn = function(){}`)은 변수 호이스팅 규칙을 따르므로 선언 전 호출 시 에러가 납니다.
+
+## let·const와 TDZ
+
+`let`과 `const`도 호이스팅되지만, `var`와 달리 선언 이전 구간에서는 접근할 수 없습니다. 이 "선언 전 접근 금지" 구간을 **TDZ(Temporal Dead Zone, 일시적 사각지대)** 라고 합니다.
+
+```js
+console.log(y); // ReferenceError: Cannot access 'y' before initialization
+let y = 1;
+```
+
+즉 `let`/`const`는 스코프 시작부터 선언문에 도달하기 전까지 TDZ에 머물러, 접근하면 `ReferenceError`가 발생합니다. 이 덕분에 "선언 전에 실수로 쓰는" 버그를 막아줍니다.
+
+## 정리
+
+| 대상            | 선언 전 접근                                        |
+| --------------- | --------------------------------------------------- |
+| `var`           | `undefined` (에러 없음)                             |
+| `let` / `const` | `ReferenceError` (TDZ)                              |
+| 함수 선언문     | 정상 호출 가능                                      |
+| 함수 표현식     | 변수 규칙을 따름 (var면 undefined, let/const면 TDZ) |
+
+<Quiz
+  client:visible
+  question="다음 코드의 결과는? console.log(a); console.log(b); var a = 1; let b = 2;"
+  options={[
+    {
+      text: '둘 다 undefined가 출력된다',
+      explanation: 'var a는 undefined가 맞지만, let b는 TDZ에 있어 접근 시 ReferenceError가 발생합니다.',
+    },
+    {
+      text: 'a는 undefined, b에서 ReferenceError가 발생한다',
+      correct: true,
+      explanation:
+        'var는 선언이 끌어올려져 undefined로 접근되지만, let/const는 TDZ 때문에 선언 전 접근 시 ReferenceError가 발생합니다.',
+    },
+    {
+      text: 'a, b 모두 ReferenceError가 발생한다',
+      explanation: 'var a는 호이스팅되어 undefined로 접근 가능합니다. ReferenceError는 let b에서만 발생합니다.',
+    },
+  ]}
+/>

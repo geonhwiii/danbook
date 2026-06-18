@@ -1,0 +1,99 @@
+---
+title: 클로저란 무엇이고, 어떻게 활용하는지 설명할 수 있나요?
+description: 함수가 자신이 선언된 렉시컬 환경을 기억하는 클로저의 원리와 데이터 은닉·상태 유지 활용을 정리합니다.
+category: 자바스크립트 핵심 개념
+order: 13
+---
+
+import Quiz from '@components/react/Quiz.tsx';
+
+클로저는 **함수가 자신이 선언될 때의 렉시컬 환경(스코프)을 기억해, 바깥 함수가 끝난 뒤에도 그 변수에 계속 접근할 수 있는 것**을 말합니다. [렉시컬 스코프](/docs/frontend-tech-interview/07-scope-chain)와 일급 함수가 결합해 만들어지는 자바스크립트의 핵심 개념입니다.
+
+## 기본 원리
+
+```js
+function makeCounter() {
+  let count = 0; // 바깥 함수의 지역 변수
+  return function () {
+    count += 1; // 안쪽 함수가 바깥 변수를 참조
+    return count;
+  };
+}
+
+const counter = makeCounter();
+counter(); // 1
+counter(); // 2 — makeCounter는 이미 끝났지만 count가 살아 있음
+```
+
+보통 함수가 끝나면 지역 변수는 사라집니다. 하지만 안쪽 함수가 `count`를 참조하고 있어, 그 환경이 메모리에 유지됩니다. 반환된 `counter`가 `count`를 "닫아서 안고 있는" 셈이라 클로저라 부릅니다.
+
+## 활용 1: 데이터 은닉(private 변수)
+
+클로저로 외부에서 직접 접근할 수 없는 변수를 만들 수 있습니다.
+
+```js
+function createAccount() {
+  let balance = 0; // 외부에서 직접 접근 불가
+  return {
+    deposit(amount) {
+      balance += amount;
+    },
+    getBalance() {
+      return balance;
+    },
+  };
+}
+
+const acc = createAccount();
+acc.deposit(100);
+acc.getBalance(); // 100
+// acc.balance → undefined (직접 접근 불가)
+```
+
+## 활용 2: 상태 유지와 함수 팩토리
+
+```js
+function multiplier(factor) {
+  return (n) => n * factor; // factor를 기억
+}
+const double = multiplier(2);
+const triple = multiplier(3);
+double(5); // 10
+triple(5); // 15
+```
+
+리액트의 `useState`나 [디바운스/스로틀](/docs/frontend-tech-interview/19-debounce-throttle) 구현도 클로저로 상태(이전 값, 타이머 ID)를 유지합니다.
+
+## 주의: 반복문과 var
+
+`var`는 함수 스코프라 반복문에서 클로저와 함께 쓰면 의도와 다르게 동작합니다. `let`(블록 스코프)을 쓰면 반복마다 새 바인딩이 생겨 해결됩니다.
+
+```js
+for (var i = 0; i < 3; i++) {
+  setTimeout(() => console.log(i), 0); // 3, 3, 3
+}
+for (let i = 0; i < 3; i++) {
+  setTimeout(() => console.log(i), 0); // 0, 1, 2
+}
+```
+
+<Quiz
+  client:visible
+  question="클로저에 대한 설명으로 옳은 것은?"
+  options={[
+    {
+      text: '함수가 자신이 선언된 스코프의 변수를 기억해, 바깥 함수 실행이 끝난 뒤에도 접근할 수 있다.',
+      correct: true,
+      explanation:
+        '클로저는 함수와 그 함수가 선언된 렉시컬 환경의 조합으로, 바깥 함수가 종료된 뒤에도 변수를 유지합니다.',
+    },
+    {
+      text: '클로저는 함수가 호출된 위치의 스코프를 기억한다.',
+      explanation: '호출 위치가 아니라 선언(정의)된 위치의 렉시컬 스코프를 기억합니다.',
+    },
+    {
+      text: '클로저를 쓰면 모든 변수가 전역에 노출되어 데이터 은닉이 불가능하다.',
+      explanation: '반대로 클로저는 외부에서 접근 못 하는 private 변수를 만드는 대표적 수단입니다.',
+    },
+  ]}
+/>

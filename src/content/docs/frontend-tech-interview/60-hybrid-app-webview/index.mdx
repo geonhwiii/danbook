@@ -1,0 +1,68 @@
+---
+title: 하이브리드 앱에서 웹뷰와 앱이 소통하는 방법은 무엇인가요?
+description: 웹뷰(WebView)와 네이티브 앱 사이의 양방향 통신(JS 인터페이스·메시지 브리지) 방식을 정리합니다.
+category: 실무 프로젝트 지식
+order: 5
+---
+
+import Quiz from '@components/react/Quiz.tsx';
+
+**하이브리드 앱**은 네이티브 앱 안에 **웹뷰(WebView)** 라는 내장 브라우저를 띄워 웹 페이지를 보여 줍니다. 카메라·푸시·결제 같은 네이티브 기능을 쓰려면 웹뷰(웹)와 네이티브(앱) 사이에 **메시지 브리지(bridge)** 가 필요합니다.
+
+## 통신 방향과 방법
+
+### 웹 → 네이티브
+
+웹에서 네이티브 기능을 호출할 때 사용합니다.
+
+- **JavaScript 인터페이스 주입** — 네이티브가 웹뷰에 객체를 주입하면 웹에서 함수처럼 호출.
+  - Android: `addJavascriptInterface`로 등록한 객체 호출.
+  - iOS(WKWebView): `window.webkit.messageHandlers.<name>.postMessage(data)`.
+- React Native WebView 등에서는 `window.ReactNativeWebView.postMessage(...)`.
+
+### 네이티브 → 웹
+
+네이티브가 결과·이벤트를 웹으로 전달할 때 사용합니다.
+
+- 웹뷰에서 **JS 코드 실행**: Android `evaluateJavascript(...)`, iOS `evaluateJavaScript(...)`.
+- 보통 웹이 전역 콜백 함수(`window.onNativeMessage` 등)나 이벤트 리스너를 등록해 두고, 네이티브가 그것을 호출.
+
+```js
+// 웹 → 네이티브 (예: iOS WKWebView)
+window.webkit?.messageHandlers?.share?.postMessage({ url: location.href });
+
+// 네이티브 → 웹: 네이티브가 아래를 evaluateJavaScript로 실행
+// window.onNativeMessage(JSON.stringify({ type: 'SHARE_DONE' }))
+window.onNativeMessage = (raw) => {
+  const msg = JSON.parse(raw);
+  // 결과 처리
+};
+```
+
+## 실무 고려사항
+
+- **공통 메시지 규약** — `{ type, payload }` 형태의 JSON과 직렬화 약속을 정해 양쪽이 공유.
+- **플랫폼 분기** — Android/iOS 인터페이스가 다르므로 추상화 레이어로 감싸기.
+- **비동기 응답** — 요청에 id를 부여해 응답을 매칭(콜백/프로미스 매핑).
+- **보안** — 신뢰할 수 있는 출처만 허용, 임의 JS 실행·민감 기능 노출 주의.
+
+<Quiz
+  client:visible
+  question="하이브리드 앱에서 웹뷰와 네이티브의 통신에 대한 설명으로 옳은 것은?"
+  options={[
+    {
+      text: '네이티브가 웹뷰에 JS 인터페이스를 주입하거나 JS를 실행시키고, 웹은 postMessage 등으로 네이티브에 메시지를 보내 양방향으로 소통한다.',
+      correct: true,
+      explanation:
+        'JS 인터페이스 주입·evaluateJavaScript(네이티브→웹)와 postMessage(웹→네이티브)로 브리지를 구성합니다.',
+    },
+    {
+      text: '웹뷰와 네이티브는 서로 메모리를 직접 공유하므로 별도의 메시지 전달이 필요 없다.',
+      explanation: '직접 메모리 공유가 아니라, 브리지를 통해 메시지를 직렬화해 주고받습니다.',
+    },
+    {
+      text: '웹뷰는 네이티브 기능을 전혀 호출할 수 없어 순수 웹 화면만 표시한다.',
+      explanation: '브리지를 통해 카메라·푸시 등 네이티브 기능을 호출할 수 있습니다.',
+    },
+  ]}
+/>

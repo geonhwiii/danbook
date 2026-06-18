@@ -1,0 +1,98 @@
+---
+title: 클래스를 사용하는 이유는 무엇인가요?
+description: 프로토타입 기반 상속을 더 명확하게 표현하는 class 문법, 생성자·상속·private 필드를 정리합니다.
+category: 자바스크립트 핵심 개념
+order: 14
+---
+
+import Quiz from '@components/react/Quiz.tsx';
+
+ES2015에서 도입된 `class`는 객체를 만들고 상속하는 코드를 더 **명확하고 익숙한 형태**로 작성하게 해주는 문법입니다. 다만 내부적으로는 새로운 상속 모델이 아니라, 기존 [프로토타입](/docs/frontend-tech-interview/10-prototype) 기반 상속을 감싼 **문법적 설탕(syntactic sugar)** 입니다.
+
+## 클래스를 쓰는 이유
+
+- **가독성** — 생성자·메서드·상속을 한 블록 안에 구조적으로 묶어 의도가 분명합니다.
+- **상속이 간결** — `extends`와 `super`로 상속을 직관적으로 표현합니다.
+- **캡슐화** — `#` private 필드로 외부 접근을 언어 차원에서 막을 수 있습니다.
+
+```js
+class Animal {
+  constructor(name) {
+    this.name = name;
+  }
+  speak() {
+    return `${this.name}가 소리를 냅니다`;
+  }
+}
+
+class Dog extends Animal {
+  speak() {
+    return `${this.name}가 멍멍!`; // 메서드 오버라이드
+  }
+}
+
+const dog = new Dog('단북');
+dog.speak(); // '단북가 멍멍!'
+```
+
+## 프로토타입과의 관계
+
+클래스의 메서드는 사실 `prototype`에 정의됩니다. 그래서 아래 두 코드는 거의 같은 일을 합니다.
+
+```js
+class User {
+  greet() {
+    return 'hi';
+  }
+}
+// 위는 아래와 사실상 동일
+function User2() {}
+User2.prototype.greet = function () {
+  return 'hi';
+};
+```
+
+다만 클래스에는 차이도 있습니다. 클래스 선언은 [호이스팅](/docs/frontend-tech-interview/05-hoisting)되지만 TDZ에 걸려 선언 전 사용할 수 없고, 클래스 본문은 항상 strict 모드로 실행됩니다.
+
+## super와 private 필드
+
+```js
+class Base {
+  constructor(x) {
+    this.x = x;
+  }
+}
+class Derived extends Base {
+  #secret = 42; // private 필드 — 외부 접근 불가
+  constructor(x, y) {
+    super(x); // 부모 생성자 호출 (this 사용 전 필수)
+    this.y = y;
+  }
+  reveal() {
+    return this.#secret;
+  }
+}
+```
+
+자식 클래스의 생성자에서는 `this`를 쓰기 전에 반드시 `super()`를 호출해야 합니다.
+
+<Quiz
+  client:visible
+  question="자바스크립트의 class에 대한 설명으로 옳은 것은?"
+  options={[
+    {
+      text: 'class는 프로토타입과 무관한 완전히 새로운 상속 메커니즘이다.',
+      explanation: 'class는 프로토타입 기반 상속을 감싼 문법적 설탕입니다. 메서드는 prototype에 정의됩니다.',
+    },
+    {
+      text: 'class의 메서드는 내부적으로 prototype에 정의되며, extends/super로 상속을 표현한다.',
+      correct: true,
+      explanation:
+        'class 메서드는 prototype에 들어가고, 상속은 프로토타입 체인으로 동작합니다. class는 이를 명확히 쓰게 해주는 문법입니다.',
+    },
+    {
+      text: '자식 생성자에서는 this를 먼저 설정한 뒤 super()를 호출해야 한다.',
+      explanation: '순서가 반대입니다. 자식 생성자에서는 super()를 먼저 호출해야 this를 사용할 수 있습니다.',
+    },
+  ]}
+/>

@@ -1,0 +1,68 @@
+---
+title: 불변성이란 무엇이고, 자바스크립트에서 중요한 이유는 무엇인가요?
+description: 데이터를 직접 바꾸지 않고 새 값을 만드는 불변성의 개념과 예측 가능성·변화 감지에서의 중요성을 정리합니다.
+category: 자바스크립트 핵심 개념
+order: 18
+---
+
+import Quiz from '@components/react/Quiz.tsx';
+
+불변성(immutability)은 **한 번 만든 데이터를 직접 변경하지 않고, 변경이 필요하면 새 값을 만들어 대체하는** 원칙입니다. 자바스크립트의 객체·배열은 기본적으로 변경 가능(mutable)하기 때문에, 불변성을 의식적으로 지키는 것이 중요합니다.
+
+## 왜 중요한가
+
+- **예측 가능성** — 데이터가 곳곳에서 몰래 바뀌지 않아, 어디서 값이 변했는지 추적하기 쉽습니다. [참조 공유](/docs/frontend-tech-interview/03-objects)로 인한 의도치 않은 부작용을 막습니다.
+- **변화 감지가 쉬움** — 리액트 등은 이전 상태와 새 상태를 **참조 비교(`===`)** 로 빠르게 비교합니다. 원본을 직접 수정하면 참조가 그대로라 "바뀌지 않았다"고 판단해 리렌더가 안 됩니다.
+- **안전한 동시 처리·되돌리기** — 이전 상태가 보존되므로 시간 여행 디버깅, undo/redo가 쉬워집니다.
+
+## 직접 변경 vs 새 값 만들기
+
+```js
+// ❌ 원본을 직접 변경 (mutable)
+const state = { count: 0, tags: ['a'] };
+state.count = 1;
+state.tags.push('b');
+
+// ✅ 새 객체/배열을 만들어 대체 (immutable)
+const next = { ...state, count: 1 };
+const nextTags = [...state.tags, 'b'];
+```
+
+배열도 원본을 바꾸는 메서드(`push`, `splice`, `sort`)와 새 배열을 반환하는 메서드(`map`, `filter`, `concat`, `slice`, `toSorted`)를 구분해 후자를 선호합니다.
+
+## Object.freeze로 강제하기
+
+`const`는 **재할당**만 막을 뿐 객체 내부 변경은 막지 못합니다. 내부까지 막으려면 `Object.freeze`를 씁니다.
+
+```js
+const obj = Object.freeze({ a: 1 });
+obj.a = 2; // strict 모드면 에러, 아니면 조용히 무시됨
+console.log(obj.a); // 1
+
+// 주의: freeze는 얕다 — 중첩 객체는 얼지 않음
+const nested = Object.freeze({ inner: { v: 1 } });
+nested.inner.v = 99; // 변경됨! 깊은 동결은 재귀가 필요
+```
+
+`Object.freeze`는 한 단계만 동결하므로, 중첩까지 막으려면 재귀적으로 적용해야 합니다.
+
+<Quiz
+  client:visible
+  question="리액트에서 상태를 직접 변경(state.list.push(...))하면 리렌더가 안 되는 경우가 있는 이유로 가장 알맞은 것은?"
+  options={[
+    {
+      text: '원본 배열을 직접 수정하면 참조가 그대로라, 이전 상태와 참조 비교 시 변화가 없다고 판단되기 때문이다.',
+      correct: true,
+      explanation:
+        '리액트는 이전/다음 상태를 참조로 비교합니다. 원본을 직접 변경하면 참조가 동일해 변경을 감지하지 못합니다. 새 배열/객체로 교체해야 합니다.',
+    },
+    {
+      text: 'push는 비동기 함수라 렌더 타이밍을 놓치기 때문이다.',
+      explanation: 'push는 동기 메서드입니다. 문제는 참조가 바뀌지 않는 데 있습니다.',
+    },
+    {
+      text: 'Object.freeze가 자동으로 적용되어 변경이 무시되기 때문이다.',
+      explanation: 'freeze가 자동 적용되지는 않습니다. 핵심은 참조 동일성으로 인한 변화 미감지입니다.',
+    },
+  ]}
+/>

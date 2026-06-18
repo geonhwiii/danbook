@@ -1,0 +1,79 @@
+---
+title: 서버 컴포넌트와 클라이언트 컴포넌트의 차이는 무엇인가요?
+description: 앱 라우터에서 기본인 서버 컴포넌트와, 상호작용을 담당하는 클라이언트 컴포넌트('use client')의 역할 차이를 정리합니다.
+category: Next.js 핵심 개념
+order: 4
+---
+
+import Quiz from '@components/react/Quiz.tsx';
+
+앱 라우터에서는 컴포넌트가 **서버 컴포넌트(RSC, 기본)** 와 **클라이언트 컴포넌트**로 나뉩니다. 어디서 렌더링되고 무엇을 할 수 있는지가 다릅니다.
+
+## 서버 컴포넌트 (기본)
+
+서버에서만 실행되고, **결과 HTML(과 직렬화된 데이터)만 클라이언트로 전송**됩니다. 컴포넌트 코드 자체는 번들에 포함되지 않습니다.
+
+- DB·파일시스템·서버 환경 변수에 직접 접근 가능
+- `async/await`로 데이터를 직접 패칭
+- **클라이언트 번들 크기를 줄임** (라이브러리 코드가 안 실려감)
+- 단, `useState`·`useEffect`·이벤트 핸들러·브라우저 API는 사용 불가
+
+```jsx
+// 기본이 서버 컴포넌트
+async function Page() {
+  const data = await db.query(); // 서버에서 직접 패칭
+  return (
+    <ul>
+      {data.map((d) => (
+        <li key={d.id}>{d.name}</li>
+      ))}
+    </ul>
+  );
+}
+```
+
+## 클라이언트 컴포넌트
+
+파일 맨 위에 **`'use client'`** 를 선언합니다. 브라우저에서 하이드레이션되어 **상호작용(state·effect·이벤트)** 을 담당합니다.
+
+```jsx
+'use client';
+import { useState } from 'react';
+
+export default function Counter() {
+  const [n, setN] = useState(0);
+  return <button onClick={() => setN(n + 1)}>{n}</button>;
+}
+```
+
+## 어떻게 나누나
+
+기본은 서버 컴포넌트로 두고, **상호작용이 필요한 말단 컴포넌트만 클라이언트로** 분리하는 것이 권장 패턴입니다. 서버 컴포넌트가 클라이언트 컴포넌트를 자식으로 포함할 수 있습니다.
+
+| 구분         | 서버 컴포넌트    | 클라이언트 컴포넌트   |
+| ------------ | ---------------- | --------------------- |
+| 실행 위치    | 서버             | 서버(초기) + 브라우저 |
+| state/effect | 불가             | 가능                  |
+| 데이터 패칭  | async/await 직접 | 훅/패칭 라이브러리    |
+| 번들 포함    | 안 됨            | 됨                    |
+
+<Quiz
+  client:visible
+  question="서버 컴포넌트(React Server Component)에 대한 설명으로 옳은 것은?"
+  options={[
+    {
+      text: '서버에서 실행되어 코드가 클라이언트 번들에 포함되지 않으며, useState·이벤트 핸들러는 쓸 수 없다.',
+      correct: true,
+      explanation:
+        '서버 컴포넌트는 서버에서만 실행돼 번들 크기를 줄이지만, 상태·이벤트 등 클라이언트 기능은 사용할 수 없습니다.',
+    },
+    {
+      text: "모든 컴포넌트는 파일 상단에 'use server'를 붙여야 서버 컴포넌트가 된다.",
+      explanation: "앱 라우터에서 컴포넌트는 기본이 서버 컴포넌트이고, 클라이언트로 바꾸려면 'use client'를 붙입니다.",
+    },
+    {
+      text: '서버 컴포넌트는 useState와 onClick 같은 상호작용을 직접 처리할 수 있다.',
+      explanation: '상호작용은 클라이언트 컴포넌트의 역할입니다. 서버 컴포넌트는 상태·이벤트를 다룰 수 없습니다.',
+    },
+  ]}
+/>

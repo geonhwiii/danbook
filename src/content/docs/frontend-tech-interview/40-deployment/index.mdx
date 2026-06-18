@@ -1,0 +1,48 @@
+---
+title: Next.js 앱 배포 시 고려사항과 주로 쓰는 플랫폼은 무엇인가요?
+description: 렌더링 방식에 따른 호스팅 요구사항, 환경 변수, 빌드 산출물, 그리고 Vercel을 비롯한 배포 플랫폼을 정리합니다.
+category: Next.js 핵심 개념
+order: 10
+---
+
+import Quiz from '@components/react/Quiz.tsx';
+
+Next.js 배포의 핵심은 **앱이 어떤 [렌더링 방식](/docs/frontend-tech-interview/32-rendering-strategies)을 쓰느냐**에 달려 있습니다. 정적이냐 서버 실행이 필요하냐에 따라 필요한 호스팅이 달라집니다.
+
+## 고려사항
+
+- **렌더링 방식** — SSR·API 라우트·ISR을 쓰면 **Node 런타임이 도는 서버(또는 서버리스)** 가 필요합니다. 완전 정적(SSG/`output: export`)이면 정적 호스팅·CDN만으로 충분합니다.
+- **환경 변수** — 비밀 키는 서버 전용으로 두고, 브라우저에 노출할 값만 `NEXT_PUBLIC_` 접두사를 붙입니다. 플랫폼의 환경 변수 설정에 등록합니다.
+- **빌드 산출물** — `next build`로 빌드합니다. 도커 등 자체 호스팅 시 `output: 'standalone'`으로 최소 실행 묶음을 만들 수 있습니다.
+- **캐싱·CDN** — 정적 자산과 ISR 결과를 CDN으로 서빙해 성능을 높입니다.
+- **이미지 최적화** — [`<Image>`](/docs/frontend-tech-interview/35-image-component) 최적화는 런타임 처리가 필요하므로 지원 환경인지 확인합니다.
+
+## 주로 쓰는 플랫폼
+
+- **Vercel** — Next.js를 만든 회사의 플랫폼으로, SSR·ISR·이미지 최적화·서버리스가 **설정 없이** 동작해 가장 널리 쓰입니다.
+- **Netlify / Cloudflare Pages** — 어댑터로 Next.js 기능 지원.
+- **AWS (Amplify, SST/OpenNext)** — AWS 인프라 위에 배포.
+- **자체 호스팅** — `next start`를 Node 서버로 직접 구동하거나 도커 컨테이너로 운영.
+
+정적 사이트라면 어떤 정적 호스팅이든 되지만, **서버 기능을 쓴다면 Node 실행 환경 지원 여부**가 플랫폼 선택의 핵심 기준입니다.
+
+<Quiz
+  client:visible
+  question="Next.js 앱 배포 시 고려사항으로 옳은 것은?"
+  options={[
+    {
+      text: 'SSR·API 라우트를 쓰면 Node 런타임(서버/서버리스)이 필요하고, 완전 정적이면 정적 호스팅만으로 충분하다.',
+      correct: true,
+      explanation: '렌더링 방식에 따라 필요한 실행 환경이 달라지는 것이 배포의 핵심 고려사항입니다.',
+    },
+    {
+      text: '모든 환경 변수에 NEXT_PUBLIC_ 접두사를 붙여야 한다.',
+      explanation:
+        'NEXT_PUBLIC_은 브라우저에 노출할 값에만 붙입니다. 비밀 키에 붙이면 클라이언트로 노출되어 위험합니다.',
+    },
+    {
+      text: 'Next.js 앱은 Vercel에서만 배포할 수 있다.',
+      explanation: 'Vercel이 가장 편하지만, Netlify·Cloudflare·AWS·자체 호스팅 등 다양한 선택지가 있습니다.',
+    },
+  ]}
+/>

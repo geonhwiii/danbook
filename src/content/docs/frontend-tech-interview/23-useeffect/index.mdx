@@ -1,0 +1,83 @@
+---
+title: useEffect 훅의 동작 원리와 의존성 배열의 중요성은 무엇인가요?
+description: 렌더링 이후 실행되는 부수 효과, 의존성 배열에 따른 실행 시점, 클린업 함수와 stale closure 문제를 정리합니다.
+category: 리액트 핵심 개념
+order: 3
+---
+
+import Quiz from '@components/react/Quiz.tsx';
+
+`useEffect`는 렌더링 결과가 화면에 반영된 **이후에 부수 효과(side effect)** 를 실행하기 위한 훅입니다. 데이터 구독, 타이머, 외부 시스템과의 동기화처럼 렌더링 자체와는 분리되어야 하는 작업을 담습니다.
+
+## 기본 동작과 의존성 배열
+
+`useEffect(effect, deps)`의 두 번째 인자인 **의존성 배열**이 effect의 실행 시점을 결정합니다.
+
+```jsx
+// 1. 매 렌더링 후 실행 (배열 생략)
+useEffect(() => {
+  console.log('렌더링마다');
+});
+
+// 2. 마운트 시 1회만 (빈 배열)
+useEffect(() => {
+  console.log('처음 한 번');
+}, []);
+
+// 3. count가 바뀐 렌더링 후에만
+useEffect(() => {
+  console.log('count 변경됨', count);
+}, [count]);
+```
+
+리액트는 의존성 배열의 각 값을 이전 렌더링 때와 **`Object.is`로 비교**해, 하나라도 달라졌을 때만 effect를 다시 실행합니다.
+
+## 클린업 함수
+
+effect가 반환하는 함수는 **클린업**입니다. 다음 effect가 실행되기 직전과 컴포넌트가 언마운트될 때 호출되어, 구독 해제·타이머 정리 등 뒤처리를 합니다.
+
+```jsx
+useEffect(() => {
+  const id = setInterval(tick, 1000);
+  return () => clearInterval(id); // 정리
+}, []);
+```
+
+클린업이 없으면 타이머나 이벤트 리스너가 쌓여 **메모리 누수**가 발생할 수 있습니다.
+
+## 의존성 누락의 위험 (stale closure)
+
+effect 안에서 사용하는 값(상태, props, 함수)은 의존성 배열에 모두 넣어야 합니다. 빠뜨리면 effect가 **과거 렌더링 시점의 오래된 값**을 계속 참조하는 `stale closure` 버그가 생깁니다([클로저](/docs/frontend-tech-interview/13-closures) 참고).
+
+```jsx
+useEffect(() => {
+  const id = setInterval(() => {
+    // count를 deps에 안 넣으면 항상 처음의 count(0)만 본다
+    console.log(count);
+  }, 1000);
+  return () => clearInterval(id);
+}, []); // ← count 누락
+```
+
+`eslint-plugin-react-hooks`의 경고를 지키는 것이 이런 버그를 막는 가장 쉬운 방법입니다.
+
+<Quiz
+  client:visible
+  question="useEffect(() => { ... }, []) 처럼 빈 의존성 배열을 넘기면 effect는 언제 실행되나요?"
+  options={[
+    {
+      text: '컴포넌트가 처음 마운트될 때 한 번만 실행된다.',
+      correct: true,
+      explanation:
+        '빈 배열은 "의존하는 값이 없다"는 뜻이라, 마운트 직후 1회 실행되고 이후 리렌더에서는 다시 실행되지 않습니다.',
+    },
+    {
+      text: '매 렌더링이 끝날 때마다 실행된다.',
+      explanation: '그건 의존성 배열을 아예 생략했을 때의 동작입니다. 빈 배열은 1회만 실행됩니다.',
+    },
+    {
+      text: '실행되지 않는다.',
+      explanation: '마운트 시 한 번은 실행됩니다.',
+    },
+  ]}
+/>

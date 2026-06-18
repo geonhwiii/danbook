@@ -1,0 +1,66 @@
+---
+title: 리액트의 성능 최적화 방법에는 어떤 것들이 있나요?
+description: 불필요한 리렌더링을 줄이는 memo·useMemo·useCallback, 코드 스플리팅, 리스트 가상화 등 핵심 최적화 기법을 정리합니다.
+category: 리액트 핵심 개념
+order: 5
+---
+
+import Quiz from '@components/react/Quiz.tsx';
+
+리액트 성능 최적화의 핵심은 대부분 **불필요한 리렌더링과 무거운 계산을 줄이는 것**입니다. 다만 최적화는 비용이 있으므로, 실제로 병목일 때 측정 후 적용하는 것이 원칙입니다.
+
+## 리렌더링 줄이기
+
+### React.memo
+
+props가 바뀌지 않으면 컴포넌트의 리렌더링을 건너뜁니다(얕은 비교).
+
+```jsx
+const Item = React.memo(function Item({ value }) {
+  return <li>{value}</li>;
+});
+```
+
+### useMemo / useCallback
+
+- **`useMemo`** — 비용이 큰 계산 결과를 캐싱해, 의존성이 그대로면 재계산을 건너뜁니다.
+- **`useCallback`** — 함수를 메모이즈해, 매 렌더링마다 새 함수가 만들어져 자식이 헛되이 리렌더되는 것을 막습니다.
+
+```jsx
+const sorted = useMemo(() => items.sort(compare), [items]);
+const handleClick = useCallback(() => doSomething(id), [id]);
+```
+
+`useCallback(fn, deps)`은 `useMemo(() => fn, deps)`와 같습니다. 둘 다 의존성([useEffect](/docs/frontend-tech-interview/23-useeffect)와 같은 규칙)이 바뀔 때만 값을 새로 만듭니다.
+
+## 그 외 핵심 기법
+
+- **올바른 [`key`](/docs/frontend-tech-interview/30-key-prop) 사용** — 재조정이 항목을 정확히 식별해 불필요한 DOM 작업을 줄입니다.
+- **코드 스플리팅** — `React.lazy` + `Suspense`로 필요한 시점에만 컴포넌트를 불러와 초기 번들을 줄입니다.
+- **리스트 가상화(windowing)** — 수천 개 항목은 화면에 보이는 것만 렌더링합니다(react-window 등).
+- **상태를 필요한 곳에 가깝게 두기** — 상태를 너무 위에 두면 넓은 영역이 함께 리렌더됩니다.
+
+## 주의: 과한 최적화
+
+`memo`·`useMemo`·`useCallback`도 비교·캐싱 비용이 듭니다. 가벼운 컴포넌트에 무분별하게 쓰면 오히려 느려지거나 코드만 복잡해집니다. **React DevTools Profiler로 병목을 측정한 뒤** 적용하세요.
+
+<Quiz
+  client:visible
+  question="useCallback을 사용하는 주된 목적으로 옳은 것은?"
+  options={[
+    {
+      text: '함수를 메모이즈해, 매 렌더링마다 새 함수가 생성되어 자식이 불필요하게 리렌더되는 것을 막는다.',
+      correct: true,
+      explanation:
+        '의존성이 그대로면 같은 함수 참조를 유지하므로, React.memo로 감싼 자식에 함수를 넘길 때 헛된 리렌더를 줄일 수 있습니다.',
+    },
+    {
+      text: '함수의 실행 속도 자체를 빠르게 만들어 준다.',
+      explanation: 'useCallback은 함수 참조를 유지할 뿐, 함수 내부 실행 속도를 빠르게 하지는 않습니다.',
+    },
+    {
+      text: '함수가 비동기로 실행되도록 바꿔 준다.',
+      explanation: '비동기 실행과는 무관합니다. 함수 참조의 동일성을 유지하는 훅입니다.',
+    },
+  ]}
+/>

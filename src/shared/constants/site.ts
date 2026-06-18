@@ -36,6 +36,21 @@ export const courses: Course[] = [
       '브라우저와 서버가 주고받는 HTTP를 프론트엔드 관점에서 정리합니다. URI·요청/응답·메서드부터 폼·쿠키·세션, 배포·캐싱·HTTPS·HTTP/2까지 fetch·curl·DevTools로 확인하며 익힙니다.',
     categoryOrder: ['HTTP 기초', 'HTTP 실전'],
   },
+  {
+    slug: 'frontend-tech-interview',
+    title: '프론트엔드 기술 면접',
+    subtitle: '면접 질문으로 정리하는 핵심 개념',
+    description:
+      '자주 나오는 프론트엔드 면접 질문을 개념 설명과 퀴즈로 정리합니다. 자바스크립트·리액트·Next.js부터 인프라·보안·네트워크, 실무 프로젝트 지식, AI 프로젝트까지 질문 하나하나를 근거와 함께 익힙니다.',
+    categoryOrder: [
+      '자바스크립트 핵심 개념',
+      '리액트 핵심 개념',
+      'Next.js 핵심 개념',
+      '인프라·보안·네트워크',
+      '실무 프로젝트 지식',
+      'AI 프로젝트',
+    ],
+  },
 ];
 
 export const courseBySlug = (slug: string) => courses.find((c) => c.slug === slug);

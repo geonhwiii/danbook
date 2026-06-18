@@ -1,0 +1,61 @@
+---
+title: 구글의 코어 웹 바이탈이란 무엇인가요?
+description: 사용자 경험을 측정하는 구글의 핵심 지표 LCP·INP·CLS의 의미와 기준, 개선 방향을 정리합니다.
+category: 실무 프로젝트 지식
+order: 10
+---
+
+import Quiz from '@components/react/Quiz.tsx';
+
+**코어 웹 바이탈(Core Web Vitals)** 은 구글이 정의한, 실제 사용자 경험의 품질을 측정하는 **핵심 지표 모음**입니다. 로딩·상호작용·시각적 안정성을 정량화하며, 검색 순위 신호로도 쓰입니다.
+
+## 세 가지 핵심 지표
+
+- **LCP (Largest Contentful Paint) — 로딩**
+  - 뷰포트에서 **가장 큰 콘텐츠 요소**가 렌더링되기까지의 시간. 체감 로딩 속도.
+  - **좋음: 2.5초 이하**.
+- **INP (Interaction to Next Paint) — 반응성**
+  - 사용자 상호작용(클릭·탭·키 입력)에 대해 화면이 반응하기까지의 지연. 페이지 전체 수명에서 관찰된 상호작용 지연을 대표.
+  - **좋음: 200ms 이하**. (2024년 3월 기준 **FID를 대체**해 코어 지표가 됨.)
+- **CLS (Cumulative Layout Shift) — 시각적 안정성**
+  - 예기치 않은 **레이아웃 이동**의 누적량(점수). 콘텐츠가 갑자기 밀리는 정도.
+  - **좋음: 0.1 이하**.
+
+| 지표 | 측정 대상   | 좋음 기준 |
+| ---- | ----------- | --------- |
+| LCP  | 로딩 속도   | ≤ 2.5s    |
+| INP  | 반응성      | ≤ 200ms   |
+| CLS  | 시각 안정성 | ≤ 0.1     |
+
+## 개선 방향
+
+- **LCP** — 주요 이미지 `preload`, 서버 응답·렌더 차단 자원 줄이기, [CDN](/docs/frontend-tech-interview/42-cdn)·[캐싱](/docs/frontend-tech-interview/43-browser-caching), 이미지 최적화.
+- **INP** — 긴 작업 분할, 메인 스레드 점유 줄이기, 무거운 JS 지연·웹 워커 활용.
+- **CLS** — 이미지·광고·임베드에 **크기(width/height) 지정**, 폰트 로딩으로 인한 이동 방지, 동적 삽입 콘텐츠는 공간 예약.
+
+## 측정 도구
+
+- **실사용자(Field)** — Chrome UX Report(CrUX), `web-vitals` 라이브러리.
+- **실험실(Lab)** — Lighthouse, PageSpeed Insights, Chrome DevTools.
+
+> 전반적인 [로딩 성능 최적화](/docs/frontend-tech-interview/51-loading-performance)와 함께, "측정 → 병목 개선 → 재측정"을 반복하는 것이 핵심입니다.
+
+<Quiz
+  client:visible
+  question="코어 웹 바이탈의 세 핵심 지표로 옳은 것은?"
+  options={[
+    {
+      text: 'LCP(로딩), INP(반응성), CLS(시각적 안정성)',
+      correct: true,
+      explanation: '현재 코어 웹 바이탈은 LCP·INP·CLS입니다. INP는 2024년에 FID를 대체했습니다.',
+    },
+    {
+      text: 'LCP, FCP, TTFB만으로 구성된다.',
+      explanation: 'FCP·TTFB는 보조·진단 지표입니다. 코어 3종은 LCP·INP·CLS입니다.',
+    },
+    {
+      text: 'CLS는 페이지 로딩 속도를 초 단위로 측정하는 지표다.',
+      explanation: 'CLS는 레이아웃 이동의 누적량(시각적 안정성) 점수입니다. 로딩 속도는 LCP가 측정합니다.',
+    },
+  ]}
+/>

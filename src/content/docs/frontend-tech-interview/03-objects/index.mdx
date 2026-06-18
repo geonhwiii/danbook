@@ -1,0 +1,79 @@
+---
+title: 객체란 무엇인가요?
+description: 키-값 쌍의 집합인 객체의 정의와 생성·접근 방법, 참조 타입의 특성, 프로퍼티 다루기를 정리합니다.
+category: 자바스크립트 핵심 개념
+order: 3
+---
+
+import Quiz from '@components/react/Quiz.tsx';
+
+객체는 **키(key)와 값(value)의 쌍**을 모아 둔 자료구조입니다. 원시 타입이 하나의 값을 표현한다면, 객체는 서로 관련된 여러 값과 동작(메서드)을 묶어 표현합니다. 배열·함수·날짜·정규식 등도 모두 특수한 형태의 객체입니다.
+
+## 객체 만들기와 접근
+
+```js
+const user = {
+  name: '단북',
+  age: 3,
+  greet() {
+    return `안녕, ${this.name}`;
+  },
+};
+
+user.name; // 점 표기법 → '단북'
+user['age']; // 대괄호 표기법 → 3
+const key = 'name';
+user[key]; // 변수로 키 접근 → '단북'
+user.greet(); // 메서드 호출 → '안녕, 단북'
+```
+
+키가 동적으로 정해지거나 식별자로 쓸 수 없는 문자열(`'first-name'`)일 때는 대괄호 표기법을 씁니다.
+
+## 객체는 참조 타입
+
+객체를 변수에 담으면 그 변수는 값 자체가 아니라 **객체가 있는 메모리 주소(참조)** 를 가집니다. 그래서 같은 객체를 두 변수가 가리키면 한쪽에서의 변경이 다른 쪽에도 보입니다.
+
+```js
+const a = { count: 0 };
+const b = a;
+b.count = 10;
+console.log(a.count); // 10 — 같은 객체
+
+console.log({} === {}); // false — 내용이 같아도 다른 객체(참조가 다름)
+```
+
+이 때문에 객체 비교는 "내용이 같은가"가 아니라 "같은 참조인가"를 따집니다.
+
+## 프로퍼티 다루기
+
+```js
+const obj = { a: 1, b: 2 };
+
+Object.keys(obj); // ['a', 'b']
+Object.values(obj); // [1, 2]
+Object.entries(obj); // [['a', 1], ['b', 2]]
+'a' in obj; // true — 키 존재 확인
+delete obj.a; // 프로퍼티 삭제
+```
+
+`const`로 선언한 객체도 프로퍼티는 바꿀 수 있습니다. `const`는 변수가 가리키는 참조를 다시 할당하지 못하게 막을 뿐, 객체 내부의 변경은 막지 않습니다. 내부까지 막으려면 `Object.freeze`가 필요합니다([불변성](/docs/frontend-tech-interview/18-immutability) 참고).
+
+<Quiz
+  client:visible
+  question="다음 코드의 출력으로 옳은 것은? const a = { v: 1 }; const b = a; b.v = 5; console.log(a.v, a === b);"
+  options={[
+    {
+      text: '1 false',
+      explanation: 'b는 a와 같은 객체를 참조하므로 b.v 변경이 a에도 반영되고, a === b는 같은 참조라 true입니다.',
+    },
+    {
+      text: '5 true',
+      correct: true,
+      explanation: 'b = a로 같은 참조를 공유하므로 a.v는 5가 되고, 두 변수는 같은 객체를 가리켜 a === b는 true입니다.',
+    },
+    {
+      text: '5 false',
+      explanation: 'b.v = 5는 a.v에도 반영되어 5가 맞지만, 같은 객체를 가리키므로 a === b는 true입니다.',
+    },
+  ]}
+/>

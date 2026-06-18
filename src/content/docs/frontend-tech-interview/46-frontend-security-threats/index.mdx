@@ -1,0 +1,60 @@
+---
+title: 프런트엔드에서 발생할 수 있는 웹 보안 위협은 무엇이 있나요?
+description: XSS·CSRF·클릭재킹 등 프런트엔드에서 주의해야 할 대표적 웹 보안 위협과 방어법을 정리합니다.
+category: 인프라·보안·네트워크
+order: 6
+---
+
+import Quiz from '@components/react/Quiz.tsx';
+
+프런트엔드는 사용자 입력과 외부 리소스를 다루므로 다양한 공격 표면을 가집니다. 대표적인 위협과 방어법을 정리합니다.
+
+## XSS (Cross-Site Scripting)
+
+공격자가 페이지에 **악성 스크립트를 주입**해 다른 사용자의 브라우저에서 실행시키는 공격입니다. 쿠키·토큰 탈취, 세션 가로채기 등에 악용됩니다.
+
+- **방어** — 사용자 입력을 출력 시 **이스케이프**(리액트는 기본적으로 텍스트를 escape함), `dangerouslySetInnerHTML`/`innerHTML` 사용 자제, 필요 시 **DOMPurify**로 정화, **CSP(Content-Security-Policy)** 헤더 적용.
+
+## CSRF (Cross-Site Request Forgery)
+
+로그인된 사용자의 **인증 정보(쿠키)를 이용**해, 사용자가 의도하지 않은 요청을 다른 사이트에서 보내게 만드는 공격입니다.
+
+- **방어** — **CSRF 토큰**, 쿠키에 **`SameSite`** 속성, 중요한 요청에 재인증.
+
+## 클릭재킹 (Clickjacking)
+
+투명한 `iframe`으로 우리 사이트를 덮어 사용자가 다른 것을 클릭하게 속이는 공격입니다.
+
+- **방어** — `X-Frame-Options: DENY` 또는 CSP의 `frame-ancestors`.
+
+## 기타
+
+- **민감 정보 노출** — API 키·토큰을 클라이언트에 두지 않기.
+- **의존성 취약점** — 패키지 정기 점검(`npm audit`).
+- **중간자 공격** — HTTPS 강제.
+
+| 위협     | 핵심 방어                        |
+| -------- | -------------------------------- |
+| XSS      | 입력 이스케이프·정화, CSP        |
+| CSRF     | CSRF 토큰, SameSite 쿠키         |
+| 클릭재킹 | X-Frame-Options, frame-ancestors |
+
+<Quiz
+  client:visible
+  question="XSS(Cross-Site Scripting)에 대한 방어로 적절한 것은?"
+  options={[
+    {
+      text: '사용자 입력을 출력할 때 이스케이프/정화하고, 신뢰할 수 없는 HTML 삽입을 피하며 CSP를 적용한다.',
+      correct: true,
+      explanation: 'XSS는 악성 스크립트 주입 공격으로, 출력 이스케이프·정화·CSP가 핵심 방어입니다.',
+    },
+    {
+      text: '모든 사용자 입력을 dangerouslySetInnerHTML로 그대로 렌더링한다.',
+      explanation: '검증 없는 HTML 삽입은 오히려 XSS를 유발합니다. 가급적 피하고 필요 시 정화해야 합니다.',
+    },
+    {
+      text: 'HTTPS만 적용하면 XSS는 완전히 막힌다.',
+      explanation: 'HTTPS는 전송 구간 보호이며 XSS(스크립트 주입)를 막지 못합니다. 별도 방어가 필요합니다.',
+    },
+  ]}
+/>

@@ -1,0 +1,60 @@
+---
+title: 앱 라우터와 페이지 라우터의 차이점은 무엇인가요?
+description: Next.js의 두 라우팅 패러다임인 App Router(app/)와 Pages Router(pages/)의 구조와 기능 차이를 정리합니다.
+category: Next.js 핵심 개념
+order: 3
+---
+
+import Quiz from '@components/react/Quiz.tsx';
+
+Next.js에는 두 가지 라우터가 있습니다. 전통적인 **페이지 라우터(`pages/`)** 와, Next.js 13에서 도입돼 현재 권장되는 **앱 라우터(`app/`)** 입니다.
+
+## 페이지 라우터 (`pages/`)
+
+`pages/` 폴더의 파일이 곧 경로가 됩니다. 데이터 패칭은 페이지 단위 함수로 합니다.
+
+- `getServerSideProps` — 요청마다 서버에서 데이터 패칭(SSR)
+- `getStaticProps` / `getStaticPaths` — 빌드 시 데이터 패칭(SSG)
+- 모든 컴포넌트가 기본적으로 클라이언트 컴포넌트
+
+## 앱 라우터 (`app/`)
+
+`app/` 폴더를 쓰며, **[서버 컴포넌트](/docs/frontend-tech-interview/34-server-client-components)가 기본**입니다. 폴더 안의 특수 파일로 UI를 구성합니다.
+
+- `page.tsx` — 해당 경로의 페이지
+- `layout.tsx` — 중첩 가능한 공통 레이아웃(상태 유지)
+- `loading.tsx` — Suspense 기반 로딩 UI
+- `error.tsx` — 에러 바운더리
+- 데이터 패칭은 서버 컴포넌트에서 `async/await`로 직접
+
+## 핵심 차이
+
+| 구분          | 페이지 라우터           | 앱 라우터                 |
+| ------------- | ----------------------- | ------------------------- |
+| 폴더          | `pages/`                | `app/`                    |
+| 기본 컴포넌트 | 클라이언트              | 서버 컴포넌트             |
+| 데이터 패칭   | `getServerSideProps` 등 | 컴포넌트 내 `async/await` |
+| 레이아웃      | `_app`/`_document`      | 중첩 `layout.tsx`         |
+| 스트리밍      | 제한적                  | Suspense·스트리밍 지원    |
+
+두 라우터는 **한 프로젝트에서 공존**할 수 있어 점진적 마이그레이션이 가능합니다. 신규 프로젝트는 앱 라우터가 권장됩니다.
+
+<Quiz
+  client:visible
+  question="앱 라우터(app/)와 페이지 라우터(pages/)의 차이로 옳은 것은?"
+  options={[
+    {
+      text: '앱 라우터는 서버 컴포넌트가 기본이고 layout.tsx 같은 특수 파일로 UI를 구성한다.',
+      correct: true,
+      explanation: '앱 라우터는 서버 컴포넌트 기반에 layout·loading·error 등 폴더 규약 파일을 사용합니다.',
+    },
+    {
+      text: '페이지 라우터에서는 서버 컴포넌트가 기본이다.',
+      explanation: '서버 컴포넌트가 기본인 것은 앱 라우터입니다. 페이지 라우터는 클라이언트 컴포넌트 기반입니다.',
+    },
+    {
+      text: '두 라우터는 절대 같은 프로젝트에서 함께 쓸 수 없다.',
+      explanation: '두 라우터는 공존이 가능해 점진적 마이그레이션을 할 수 있습니다.',
+    },
+  ]}
+/>

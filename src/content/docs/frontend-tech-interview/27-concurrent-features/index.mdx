@@ -1,0 +1,77 @@
+---
+title: 리액트 18의 동시성 기능을 설명할 수 있나요?
+description: 렌더링을 중단·재개할 수 있는 동시성 렌더링과 startTransition·useDeferredValue·자동 배칭·Suspense를 정리합니다.
+category: 리액트 핵심 개념
+order: 7
+---
+
+import Quiz from '@components/react/Quiz.tsx';
+
+리액트 18은 **동시성 렌더링(Concurrent Rendering)** 을 도입했습니다. 핵심은 렌더링을 **중단했다가 재개하거나 우선순위를 조절**할 수 있게 되었다는 점입니다. 무거운 렌더링이 진행되는 동안에도 사용자 입력 같은 급한 업데이트를 먼저 처리해 UI가 멈추지 않게 합니다.
+
+이 기능들을 쓰려면 `ReactDOM.createRoot`로 앱을 마운트해야 합니다.
+
+```jsx
+import { createRoot } from 'react-dom/client';
+createRoot(document.getElementById('root')).render(<App />);
+```
+
+## startTransition / useTransition
+
+업데이트를 **긴급하지 않은(transition)** 것으로 표시합니다. 예를 들어 검색어 입력(긴급)과 그에 따른 큰 결과 목록 렌더링(긴급하지 않음)을 분리하면, 입력이 버벅이지 않습니다.
+
+```jsx
+const [isPending, startTransition] = useTransition();
+
+function onChange(e) {
+  setQuery(e.target.value); // 긴급: 입력값 즉시 반영
+  startTransition(() => {
+    setResults(filter(e.target.value)); // 비긴급: 미뤄도 됨
+  });
+}
+```
+
+## useDeferredValue
+
+값의 "지연된 버전"을 만들어, 급한 업데이트가 끝난 뒤 따라오게 합니다. `startTransition`과 비슷하지만 **값** 기준으로 다룹니다.
+
+```jsx
+const deferredQuery = useDeferredValue(query);
+```
+
+## 자동 배칭 (Automatic Batching)
+
+여러 상태 업데이트를 한 번의 리렌더로 묶는 것을 **배칭**이라 합니다. 리액트 18부터는 이벤트 핸들러뿐 아니라 **`setTimeout`·Promise·네이티브 이벤트 안에서도** 자동으로 배칭되어 리렌더 횟수가 줄어듭니다.
+
+## Suspense
+
+`Suspense`로 자식이 준비될 때까지 보여 줄 폴백 UI를 선언합니다. 18에서 SSR 스트리밍과 함께 강화되었습니다.
+
+```jsx
+<Suspense fallback={<Spinner />}>
+  <LazyComponent />
+</Suspense>
+```
+
+이 모든 기능은 [Fiber 아키텍처](/docs/frontend-tech-interview/21-virtual-dom-reconciliation)가 렌더링을 잘게 쪼갤 수 있기에 가능합니다.
+
+<Quiz
+  client:visible
+  question="useTransition / startTransition의 목적으로 옳은 것은?"
+  options={[
+    {
+      text: '긴급하지 않은 상태 업데이트를 표시해, 급한 업데이트(예: 입력)가 막히지 않게 한다.',
+      correct: true,
+      explanation:
+        '무거운 업데이트를 transition으로 표시하면 리액트가 우선순위를 낮춰, 사용자 입력 같은 급한 작업을 먼저 처리합니다.',
+    },
+    {
+      text: '비동기 함수를 동기적으로 실행하도록 바꿔 준다.',
+      explanation: '실행 방식을 바꾸는 게 아니라 렌더링 업데이트의 우선순위를 조절하는 기능입니다.',
+    },
+    {
+      text: '모든 상태 업데이트를 즉시·최우선으로 처리한다.',
+      explanation: '오히려 반대입니다. 해당 업데이트를 "급하지 않음"으로 낮춰 미룹니다.',
+    },
+  ]}
+/>

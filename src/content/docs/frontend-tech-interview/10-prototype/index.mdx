@@ -1,0 +1,74 @@
+---
+title: 자바스크립트의 프로토타입이란 무엇인가요?
+description: 객체가 다른 객체를 상속하는 프로토타입 체인의 원리와 prototype·__proto__, 상속 동작을 정리합니다.
+category: 자바스크립트 핵심 개념
+order: 10
+---
+
+import Quiz from '@components/react/Quiz.tsx';
+
+자바스크립트는 **프로토타입 기반 언어**입니다. 모든 객체는 자신의 부모 역할을 하는 다른 객체, 즉 **프로토타입**을 가리키는 내부 링크를 가지며, 이 링크가 연결된 사슬을 **프로토타입 체인**이라고 합니다. 객체에서 어떤 프로퍼티를 찾을 때 자신에게 없으면 이 체인을 따라 올라가며 찾습니다.
+
+## 프로토타입 체인
+
+```js
+const arr = [1, 2, 3];
+arr.push(4); // arr 자신에는 push가 없지만…
+// arr → Array.prototype(push, map 등) → Object.prototype(toString 등) → null
+```
+
+`arr`에 직접 `push`가 없어도, 엔진이 프로토타입 체인을 따라 `Array.prototype`에서 `push`를 찾아 실행합니다. 체인의 끝은 `Object.prototype`이고, 그 위는 `null`입니다.
+
+## prototype과 `__proto__`
+
+용어가 헷갈리기 쉬운데 둘은 다릅니다.
+
+- **`prototype`** — 함수(생성자)가 갖는 프로퍼티. `new`로 만든 인스턴스의 프로토타입이 될 객체입니다.
+- **`__proto__`** (표준은 `Object.getPrototypeOf`) — 개별 객체가 실제로 참조하는 프로토타입입니다.
+
+```js
+function User(name) {
+  this.name = name;
+}
+User.prototype.greet = function () {
+  return `안녕, ${this.name}`;
+};
+
+const u = new User('단북');
+u.greet(); // '안녕, 단북' — User.prototype에서 찾음
+
+Object.getPrototypeOf(u) === User.prototype; // true
+```
+
+`greet`를 인스턴스마다 따로 만들지 않고 `prototype`에 한 번만 두면, 모든 인스턴스가 이를 공유해 메모리를 아낍니다.
+
+## 상속과 확인 메서드
+
+```js
+u.hasOwnProperty('name'); // true  — 인스턴스 자신의 프로퍼티
+u.hasOwnProperty('greet'); // false — 프로토타입에 있는 것
+'greet' in u; // true  — 체인까지 포함해 확인
+```
+
+[클래스](/docs/frontend-tech-interview/14-classes) 문법도 내부적으로는 이 프로토타입 체인을 사용하는 문법적 설탕(syntactic sugar)입니다.
+
+<Quiz
+  client:visible
+  question="프로토타입에 대한 설명으로 옳은 것은?"
+  options={[
+    {
+      text: '객체에 없는 프로퍼티는 프로토타입 체인을 따라 올라가며 탐색한다.',
+      correct: true,
+      explanation:
+        '자신에게 없으면 __proto__가 가리키는 프로토타입, 그 다음 프로토타입… 순으로 Object.prototype까지 올라가며 찾습니다.',
+    },
+    {
+      text: '메서드를 prototype에 정의하면 인스턴스마다 별도의 함수가 복사되어 생성된다.',
+      explanation: '반대로 prototype의 메서드는 모든 인스턴스가 공유하므로 메모리를 절약합니다.',
+    },
+    {
+      text: '프로토타입 체인의 끝은 Array.prototype이다.',
+      explanation: '체인의 끝은 Object.prototype이고, 그 위는 null입니다.',
+    },
+  ]}
+/>

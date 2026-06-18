@@ -1,0 +1,60 @@
+---
+title: 웹 사이트 로딩 성능을 최적화하는 방법은 무엇이 있나요?
+description: 자산 경량화·로딩 전략·렌더링 최적화 등 초기 로딩 성능을 끌어올리는 핵심 기법을 정리합니다.
+category: 인프라·보안·네트워크
+order: 11
+---
+
+import Quiz from '@components/react/Quiz.tsx';
+
+로딩 성능은 사용자 경험과 직결됩니다. 무엇을 **얼마나·언제·어떻게** 내려보내느냐를 다각도로 줄이고 미루는 것이 핵심입니다.
+
+## 전송량 줄이기
+
+- **코드 스플리팅·트리 셰이킹** — 필요한 코드만, 라우트/컴포넌트 단위로 분할 로드.
+- **압축** — Gzip/Brotli, JS·CSS **minify**.
+- **이미지 최적화** — WebP/AVIF, 적절한 크기, 반응형 `srcset`, 지연 로딩(`loading="lazy"`).
+- **불필요한 의존성 제거**.
+
+## 네트워크·캐싱
+
+- **[CDN](/docs/frontend-tech-interview/42-cdn)** 으로 가까운 곳에서 전달.
+- **[브라우저 캐싱](/docs/frontend-tech-interview/43-browser-caching)** 으로 재방문 비용 절감.
+- **HTTP/2·HTTP/3**, `preconnect`/`dns-prefetch`/`preload`로 중요한 자원 우선 확보.
+
+## 렌더링·실행
+
+- **중요 CSS 인라인**, 비중요 CSS·JS는 `async`/`defer`로 지연.
+- **SSR/SSG** 로 초기 표시를 빠르게(특히 첫 콘텐츠).
+- **렌더 차단 리소스 최소화**, 폰트 `font-display: swap`.
+- 무거운 작업은 지연·가상화(리스트 virtualization).
+
+## 측정
+
+**Core Web Vitals**(LCP·CLS·INP)와 Lighthouse로 측정하고 개선합니다. 추측이 아니라 **측정 기반**으로 병목을 찾는 것이 중요합니다.
+
+| 범주     | 대표 기법                          |
+| -------- | ---------------------------------- |
+| 전송량   | 코드 스플리팅, 압축, 이미지 최적화 |
+| 네트워크 | CDN, 캐싱, preload/preconnect      |
+| 렌더링   | SSR/SSG, 렌더 차단 제거, 지연 로딩 |
+
+<Quiz
+  client:visible
+  question="초기 로딩 성능 최적화 기법으로 적절하지 않은 것은?"
+  options={[
+    {
+      text: '모든 자바스크립트를 하나의 큰 번들로 합쳐 첫 화면에서 한꺼번에 로드한다.',
+      correct: true,
+      explanation: '큰 단일 번들은 초기 로딩을 느리게 합니다. 코드 스플리팅으로 필요한 만큼만 나눠 로드해야 합니다.',
+    },
+    {
+      text: '라우트 단위 코드 스플리팅으로 필요한 코드만 로드한다.',
+      explanation: '적절한 최적화입니다. 필요한 코드만 분할 로드하면 초기 부담이 줄어듭니다.',
+    },
+    {
+      text: '이미지를 WebP/AVIF로 변환하고 지연 로딩을 적용한다.',
+      explanation: '적절한 최적화입니다. 이미지 경량화와 지연 로딩은 로딩 성능에 효과적입니다.',
+    },
+  ]}
+/>
