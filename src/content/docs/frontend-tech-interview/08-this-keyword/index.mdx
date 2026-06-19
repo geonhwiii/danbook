@@ -5,7 +5,7 @@ category: 자바스크립트 핵심 개념
 order: 8
 ---
 
-import Quiz from '@components/react/Quiz.tsx';
+import Quiz from '@components/Quiz.astro';
 
 `this`는 함수가 **어떻게 호출되었는지**에 따라 가리키는 대상이 달라지는 키워드입니다. 정의된 위치가 아니라 **호출 시점의 방식**으로 결정된다는 점이 핵심입니다(화살표 함수는 예외).
 
@@ -75,8 +75,10 @@ obj.print(); // '단북' 1 / '단북' 2
 ```
 
 <Quiz
-  client:visible
-  question="const o = { v: 1, get() { return this.v; } }; const g = o.get; g(); 의 결과로 가장 알맞은 것은?"
+  question="다음 코드의 결과로 가장 알맞은 것은?"
+  code={`const o = { v: 1, get() { return this.v; } };
+const g = o.get;
+g();`}
   options={[
     {
       text: '1이 반환된다',

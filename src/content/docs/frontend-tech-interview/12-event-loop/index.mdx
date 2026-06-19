@@ -5,7 +5,7 @@ category: 자바스크립트 핵심 개념
 order: 12
 ---
 
-import Quiz from '@components/react/Quiz.tsx';
+import Quiz from '@components/Quiz.astro';
 
 자바스크립트는 단일 스레드라 한 번에 하나의 작업만 처리합니다. 그런데도 타이머·네트워크 요청 같은 비동기 작업을 멈춤 없이 다룰 수 있는 비결이 **이벤트 루프(event loop)** 입니다.
 
@@ -42,8 +42,11 @@ console.log('5'); // 동기
 긴 동기 작업은 콜 스택을 오래 점유해 이벤트 루프를 막고, 그동안 UI 렌더링과 클릭 같은 이벤트 처리가 멈춰 **화면이 멈춘 듯한** 현상이 생깁니다. 무거운 작업을 쪼개거나 워커로 분리해야 하는 이유입니다.
 
 <Quiz
-  client:visible
-  question="다음 코드의 출력 순서로 옳은 것은? console.log('A'); setTimeout(() => console.log('B'), 0); Promise.resolve().then(() => console.log('C')); console.log('D');"
+  question="다음 코드의 출력 순서로 옳은 것은?"
+  code={`console.log('A');
+setTimeout(() => console.log('B'), 0);
+Promise.resolve().then(() => console.log('C'));
+console.log('D');`}
   options={[
     {
       text: 'A → B → C → D',

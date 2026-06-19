@@ -12,6 +12,8 @@ export interface QuizOption {
 export interface QuizProps {
   /** 질문 */
   question: string;
+  /** 서버에서 Shiki로 하이라이트한 코드 HTML (Quiz.astro가 생성) */
+  codeHtml?: string;
   /** 보기 목록 (정답은 correct: true) */
   options: QuizOption[];
 }
@@ -39,7 +41,7 @@ function CrossIcon() {
  * 콘텐츠 안에서 사용하는 인터랙티브 퀴즈.
  * 보기를 고르고 Check를 누르면 정답 여부를 표시하고, Reset으로 초기화한다.
  */
-export default function Quiz({ question, options }: QuizProps) {
+export default function Quiz({ question, codeHtml, options }: QuizProps) {
   const groupName = useId();
   const [selected, setSelected] = useState<number | null>(null);
   const [status, setStatus] = useState<Status>('idle');
@@ -74,7 +76,14 @@ export default function Quiz({ question, options }: QuizProps) {
 
   return (
     <div className={`not-prose my-8 rounded-xl border ${cardBorder} bg-canvas-soft p-6`}>
-      <p className="title-md mb-5">{question}</p>
+      <p className={`title-md ${codeHtml ? 'mb-4' : 'mb-5'}`}>{question}</p>
+
+      {codeHtml && (
+        <div
+          className="quiz-code mb-5 overflow-x-auto rounded-lg border border-hairline"
+          dangerouslySetInnerHTML={{ __html: codeHtml }}
+        />
+      )}
 
       <div className="flex flex-col gap-2.5" role="radiogroup" aria-label={question}>
         {options.map((opt, i) => {

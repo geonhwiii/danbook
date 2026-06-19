@@ -5,7 +5,7 @@ category: 자바스크립트 핵심 개념
 order: 3
 ---
 
-import Quiz from '@components/react/Quiz.tsx';
+import Quiz from '@components/Quiz.astro';
 
 객체는 **키(key)와 값(value)의 쌍**을 모아 둔 자료구조입니다. 원시 타입이 하나의 값을 표현한다면, 객체는 서로 관련된 여러 값과 동작(메서드)을 묶어 표현합니다. 배열·함수·날짜·정규식 등도 모두 특수한 형태의 객체입니다.
 
@@ -46,21 +46,14 @@ console.log({} === {}); // false — 내용이 같아도 다른 객체(참조가
 
 ## 프로퍼티 다루기
 
-```js
-const obj = { a: 1, b: 2 };
-
-Object.keys(obj); // ['a', 'b']
-Object.values(obj); // [1, 2]
-Object.entries(obj); // [['a', 1], ['b', 2]]
-'a' in obj; // true — 키 존재 확인
-delete obj.a; // 프로퍼티 삭제
-```
-
 `const`로 선언한 객체도 프로퍼티는 바꿀 수 있습니다. `const`는 변수가 가리키는 참조를 다시 할당하지 못하게 막을 뿐, 객체 내부의 변경은 막지 않습니다. 내부까지 막으려면 `Object.freeze`가 필요합니다([불변성](/docs/frontend-tech-interview/18-immutability) 참고).
 
 <Quiz
-  client:visible
-  question="다음 코드의 출력으로 옳은 것은? const a = { v: 1 }; const b = a; b.v = 5; console.log(a.v, a === b);"
+  question="다음 코드의 출력으로 옳은 것은?"
+  code={`const a = { v: 1 };
+const b = a;
+b.v = 5;
+console.log(a.v, a === b);`}
   options={[
     {
       text: '1 false',

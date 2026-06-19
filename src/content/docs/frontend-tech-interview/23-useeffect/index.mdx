@@ -5,7 +5,7 @@ category: 리액트 핵심 개념
 order: 3
 ---
 
-import Quiz from '@components/react/Quiz.tsx';
+import Quiz from '@components/Quiz.astro';
 
 `useEffect`는 렌더링 결과가 화면에 반영된 **이후에 부수 효과(side effect)** 를 실행하기 위한 훅입니다. 데이터 구독, 타이머, 외부 시스템과의 동기화처럼 렌더링 자체와는 분리되어야 하는 작업을 담습니다.
 
@@ -62,8 +62,10 @@ useEffect(() => {
 `eslint-plugin-react-hooks`의 경고를 지키는 것이 이런 버그를 막는 가장 쉬운 방법입니다.
 
 <Quiz
-  client:visible
-  question="useEffect(() => { ... }, []) 처럼 빈 의존성 배열을 넘기면 effect는 언제 실행되나요?"
+  question="빈 의존성 배열을 넘기면 effect는 언제 실행되나요?"
+  code={`useEffect(() => {
+  // ...
+}, []);`}
   options={[
     {
       text: '컴포넌트가 처음 마운트될 때 한 번만 실행된다.',

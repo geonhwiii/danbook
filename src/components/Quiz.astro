@@ -1,0 +1,17 @@
+---
+import QuizClient from './react/Quiz.tsx';
+import type { QuizOption } from './react/Quiz.tsx';
+import { highlightCode } from '@lib/shiki';
+
+interface Props {
+  question: string;
+  code?: string;
+  codeLang?: string;
+  options: QuizOption[];
+}
+
+const { question, code, codeLang = 'js', options } = Astro.props;
+const codeHtml = code ? await highlightCode(code, codeLang) : undefined;
+---
+
+<QuizClient client:visible question={question} codeHtml={codeHtml} options={options} />

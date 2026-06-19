@@ -512,6 +512,43 @@ pre[data-theme] span {
   box-shadow: inset 2px 0 0 var(--color-primary);
 }
 
+/* Quiz card code — same Shiki tokens as .prose, without prose wrapper */
+.quiz-code pre {
+  font-family: var(--font-mono);
+  font-size: 0.8125rem;
+  line-height: 1.6;
+  margin: 0;
+  padding: 16px 0;
+  overflow-x: auto;
+  background-color: var(--shiki-light-bg);
+}
+.quiz-code pre code {
+  display: grid;
+  font-family: inherit;
+  background: none;
+}
+.quiz-code pre code .line,
+.quiz-code pre code [data-line] {
+  padding-inline: 1rem;
+}
+.quiz-code pre,
+.quiz-code pre span {
+  color: var(--shiki-light);
+  font-style: var(--shiki-light-font-style);
+  font-weight: var(--shiki-light-font-weight);
+  text-decoration: var(--shiki-light-text-decoration);
+}
+[data-theme='dark'] .quiz-code pre {
+  background-color: var(--shiki-dark-bg) !important;
+}
+[data-theme='dark'] .quiz-code pre,
+[data-theme='dark'] .quiz-code pre span {
+  color: var(--shiki-dark) !important;
+  font-style: var(--shiki-dark-font-style) !important;
+  font-weight: var(--shiki-dark-font-weight) !important;
+  text-decoration: var(--shiki-dark-text-decoration) !important;
+}
+
 /* ──────────────────────────────────────────────────────────────
    Search palette (cmdk command menu inside an overlay-kit overlay).
    Styled via cmdk's [cmdk-*] data-attribute parts so it tracks the

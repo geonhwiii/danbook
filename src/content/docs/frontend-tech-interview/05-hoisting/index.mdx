@@ -5,7 +5,7 @@ category: 자바스크립트 핵심 개념
 order: 5
 ---
 
-import Quiz from '@components/react/Quiz.tsx';
+import Quiz from '@components/Quiz.astro';
 
 호이스팅은 변수·함수의 **선언이 자신이 속한 스코프의 최상단으로 끌어올려진 것처럼 동작하는** 현상입니다. 실제로 코드가 이동하는 것은 아니고, 엔진이 실행 전에 스코프 내 선언을 먼저 등록하기 때문에 나타나는 동작입니다.
 
@@ -51,8 +51,11 @@ let y = 1;
 | 함수 표현식     | 변수 규칙을 따름 (var면 undefined, let/const면 TDZ) |
 
 <Quiz
-  client:visible
-  question="다음 코드의 결과는? console.log(a); console.log(b); var a = 1; let b = 2;"
+  question="다음 코드의 결과는?"
+  code={`console.log(a);
+console.log(b);
+var a = 1;
+let b = 2;`}
   options={[
     {
       text: '둘 다 undefined가 출력된다',
